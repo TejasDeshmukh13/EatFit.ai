@@ -52,12 +52,8 @@ debug_images/
 Thumbs.db
 
 # Original files before restructuring
-/app.py
-/Diet_plan.py
+
 /label_encoders.pkl
 /rf_breakfast.pkl
 /rf_lunch.pkl
 /rf_dinner.pkl
-/train_model.py
-/EATFIT_DIET.csv
-/setup_database.sql 
