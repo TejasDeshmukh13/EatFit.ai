@@ -1,33 +1,69 @@
-# 🥗 EatFit - Diet & Nutrition Helper
+# 🍽️ EatFit - Food Review & Nutrition Helper
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
 
-EatFit is a comprehensive Flask-based web application designed to help users make healthier food choices through nutrition label analysis, personalized diet plans, and smart product recommendations.
+EatFit is a comprehensive Flask-based web application designed to help users analyze and review food products, compare nutrition quality, and make healthier food choices.
 
-![EatFit Banner](https://via.placeholder.com/800x200?text=EatFit+Diet+and+Nutrition+Helper)
+<div align="center">
+  <img src="src/static/images/title.png" alt="EatFit Banner" width="800"/>
+</div>
 
-## ✨ Features
+## ✨ Key Features
 
-- 🔐 **User Authentication** - Secure signup, login and profile management
-- 📊 **Health Tracking** - Monitor your key health metrics over time
-- 🍽️ **Diet Recommendations** - AI-powered personalized meal planning
-- 📱 **Food Label Scanner** - OCR-based nutrition label recognition
-- 🧮 **Nutrition Analysis** - Detailed breakdown and health scoring
-- 🔄 **Alternative Products** - Find healthier options for your favorite foods
+- 🔍 **Food Product Analysis** - Scan barcodes to get detailed product information
+- 🏷️ **Nutrition Label Scanner** - OCR-based nutrition label recognition  
+- 🧪 **Additives & Ingredients Analysis** - Identify concerning additives and ingredients
+- 🔢 **NOVA Score & Food Processing** - Understand how processed your food is
+- ⚠️ **Allergen Detection** - Identify potential allergens in food products
+- 🥗 **Healthier Alternatives** - Discover better options for your favorite foods
+- 🥦 **Personalized Diet Plans** - Get AI-powered meal recommendations
+- 🧮 **BMI & Health Tracking** - Monitor your health metrics
+
+## 📸 App Screenshots
+
+<div align="center">
+  <p><strong>Food Product Analysis & Barcode Scanning</strong></p>
+  <img src="src/static/images/pack_fd_re.jpg" alt="Food Product Analysis" width="600"/>
+  
+  <p><strong>Alternative Product Recommendations</strong></p>
+  <img src="src/static/images/alt_prd.jpg" alt="Alternative Products" width="600"/>
+  
+  <p><strong>Personalized Diet Plans</strong></p>
+  <img src="src/static/images/diet.jpg" alt="Diet Plans" width="600"/>
+</div>
 
 ## 📋 Table of Contents
 
-- [🥗 EatFit - Diet \& Nutrition Helper](#-eatfit---diet--nutrition-helper)
-  - [✨ Features](#-features)
+- [🍽️ EatFit - Food Review \& Nutrition Helper](#-eatfit---food-review--nutrition-helper)
+  - [✨ Key Features](#-key-features)
+  - [📸 App Screenshots](#-app-screenshots)
   - [📋 Table of Contents](#-table-of-contents)
+  - [🔎 How Food Review Works](#-how-food-review-works)
   - [📁 Project Structure](#-project-structure)
   - [🚀 Installation](#-installation)
   - [📖 Usage Guide](#-usage-guide)
   - [💻 Technologies](#-technologies)
   - [🤝 Contributing](#-contributing)
   - [📄 License](#-license)
+
+## 🔎 How Food Review Works
+
+EatFit's food review system provides detailed analysis of food products through several components:
+
+1. **Barcode Scanning** - Enter a product barcode to retrieve data from the Open Food Facts API
+2. **Nutri-Score Analysis** - A-E grading system based on nutritional quality
+3. **NOVA Classification** - Evaluates food processing level from 1 (unprocessed) to 4 (ultra-processed)
+4. **Additives Analysis** - Identifies and explains food additives and their potential concerns
+5. **Ingredients Analysis** - Highlights ingredients like palm oil and evaluates vegan/vegetarian status
+6. **Allergen Detection** - Identifies common allergens and possible traces
+7. **Health Analysis** - Personalized evaluation based on user health profiles
+8. **Alternative Products** - Suggests healthier alternatives in the same category
+
+<div align="center">
+  <img src="src/static/images/F1.png" alt="Food Analysis Process" width="500"/>
+</div>
 
 ## 📁 Project Structure
 
@@ -36,44 +72,24 @@ EatFit is a comprehensive Flask-based web application designed to help users mak
 └── src/                     # Main source code directory
     ├── app.py               # Flask application setup
     ├── requirements.txt     # Project dependencies
-    ├── config/              # Configuration files
-    │   ├── __init__.py
-    │   └── database.py      # Database configuration
-    ├── database/            # Database related files
-    │   ├── __init__.py
-    │   ├── db.py            # Database connection handler
-    │   └── setup_database.sql # SQL schema setup
-    ├── models/              # ML models and related code
-    │   ├── __init__.py
-    │   ├── diet_plan.py     # Diet recommendation model
-    │   ├── train_model.py   # Model training script
-    │   ├── rf_breakfast.pkl # Breakfast model
-    │   ├── rf_lunch.pkl     # Lunch model
-    │   ├── rf_dinner.pkl    # Dinner model
-    │   └── label_encoders.pkl # Label encoders for models
+    ├── models/              # Analysis models and related code
+    │   ├── food_analysis.py # Food review and analysis logic
+    │   └── diet_plan.py     # Diet recommendation model
     ├── routes/              # Route handlers
-    │   ├── __init__.py
     │   ├── auth_routes.py   # Authentication routes
     │   ├── user_routes.py   # User profile routes
     │   ├── product_routes.py # Product analysis routes
     │   └── diet_routes.py   # Diet plan routes
-    ├── static/              # Static assets
-    │   ├── css/             # CSS files
-    │   ├── js/              # JavaScript files
-    │   ├── images/          # Image files
-    │   └── uploads/         # User uploads
-    ├── templates/           # HTML templates
-    │   ├── login.html
-    │   ├── signup.html
-    │   ├── profile.html
-    │   └── ...
     ├── utils/               # Utility functions
-    │   ├── __init__.py
-    │   ├── common.py        # Common utility functions
-    │   ├── image_processing.py # Image processing utilities
-    │   └── nutrition.py     # Nutrition analysis utilities
-    └── data/                # Data files
-        └── EATFIT_DIET.csv  # Diet dataset
+    │   ├── nutrition.py     # Nutrition analysis utilities
+    │   ├── allergies.py     # Allergen detection utilities
+    │   └── image_processing.py # OCR processing
+    ├── templates/           # HTML templates
+    │   ├── product_details.html # Food review display
+    │   └── ...
+    └── static/              # Static assets
+        ├── images/          # Image assets
+        └── uploads/         # User uploads
 ```
 
 ## 🚀 Installation
@@ -116,20 +132,26 @@ EatFit is a comprehensive Flask-based web application designed to help users mak
 
 ## 📖 Usage Guide
 
-1. **Sign up or log in** to access your personalized dashboard
-2. **Complete your health profile** to receive tailored recommendations
-3. **Scan product labels** using your device's camera or upload images
-4. **View nutrition analysis** with detailed breakdown and health scores
-5. **Get diet recommendations** based on your health goals and preferences
-6. **Discover alternatives** to make healthier food choices
+1. **Create an account or log in** to access all features
+2. **Scan a product barcode** or enter it manually
+3. **View the food review** with detailed information about:
+   - Nutritional quality (Nutri-Score)
+   - Processing level (NOVA classification)
+   - Additives and their descriptions
+   - Ingredient analysis
+   - Allergen warnings
+4. **Check for healthier alternatives** to make better food choices
+5. **Complete your health profile** to receive personalized recommendations
+6. **Get diet suggestions** based on your health metrics and goals
 
 ## 💻 Technologies
 
 - **[Flask](https://flask.palletsprojects.com/)** - Web framework
 - **[MySQL](https://www.mysql.com/)** - Database management
-- **[PyTesseract](https://github.com/madmaze/pytesseract)** - OCR engine
+- **[Open Food Facts API](https://world.openfoodfacts.org/data)** - Food product database
+- **[PyTesseract](https://github.com/madmaze/pytesseract)** - OCR engine for label scanning
 - **[OpenCV](https://opencv.org/)** - Image processing
-- **[Scikit-learn](https://scikit-learn.org/)** - Machine learning
+- **[Scikit-learn](https://scikit-learn.org/)** - Machine learning for diet recommendations
 - **[Bootstrap](https://getbootstrap.com/)** - Frontend styling
 
 ## 🤝 Contributing
