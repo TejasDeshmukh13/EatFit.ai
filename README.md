@@ -8,17 +8,30 @@ EatFit is a comprehensive Flask-based web application designed to help users ana
 
 ## ✨ Key Features
 
-- 🔍 **Food Product Analysis** - Get detailed nutritional analysis and health insights for packaged foods
-- 🔄 **Smart Alternatives** - Discover healthier alternatives to your favorite food products
-- 📊 **Personalized Diet Plans** - Get customized diet recommendations tailored to your health goals
-- 🛒 **Smart Shopping Cart** - Build and manage your healthy shopping cart with nutritional insights
+- 🔍 **Food Product Analysis** - Scan barcodes to get detailed product information
+- 🏷️ **Nutrition Label Scanner** - OCR-based nutrition label recognition  
+- 🧪 **Additives & Ingredients Analysis** - Identify concerning additives and ingredients
+- 🔢 **NOVA Score & Food Processing** - Understand how processed your food is
+- ⚠️ **Allergen Detection** - Identify potential allergens in food products
+- 🥗 **Healthier Alternatives** - Discover better options for your favorite foods
+- 🥦 **Personalized Diet Plans** - Get AI-powered meal recommendations
+- 🧮 **BMI & Health Tracking** - Monitor your health metrics
+
+## 📸 App Screenshots
+
+<p><strong>Food Product Analysis & Barcode Scanning</strong></p>
+  
+<p><strong>Alternative Product Recommendations</strong></p>
+  
+<p><strong>Personalized Diet Plans</strong></p>
 
 ## 📋 Table of Contents
 
 - [🍽️ EatFit - Food Review \& Nutrition Helper](#️-eatfit---food-review--nutrition-helper)
   - [✨ Key Features](#-key-features)
+  - [📸 App Screenshots](#-app-screenshots)
   - [📋 Table of Contents](#-table-of-contents)
-  - [🔎 How EatFit Works](#-how-eatfit-works)
+  - [🔎 How Food Review Works](#-how-food-review-works)
   - [📁 Project Structure](#-project-structure)
   - [🚀 Installation](#-installation)
   - [📖 Usage Guide](#-usage-guide)
@@ -26,33 +39,18 @@ EatFit is a comprehensive Flask-based web application designed to help users ana
   - [🤝 Contributing](#-contributing)
   - [📄 License](#-license)
 
-## 🔎 How EatFit Works
+## 🔎 How Food Review Works
 
-EatFit provides a comprehensive solution for healthier food choices:
+EatFit's food review system provides detailed analysis of food products through several components:
 
-1. **Food Product Analysis**
-   - Barcode scanning to retrieve data from the Open Food Facts API
-   - Nutri-Score analysis (A-E grading system)
-   - NOVA classification of food processing levels
-   - Additives and ingredients analysis
-   - Allergen detection
-
-2. **Smart Alternatives**
-   - Personalized healthier product recommendations
-   - Comparison of nutritional profiles
-   - Filtering options based on dietary preferences
-
-3. **Personalized Diet Plans**
-   - Customized meal suggestions based on health data
-   - Nutritional requirements calculation
-   - Disease-specific dietary considerations
-   - Meal alternatives for varied options
-
-4. **Smart Shopping Cart**
-   - Shopping list creation and management
-   - Nutritional insights for your cart items
-   - Budget-friendly alternatives
-   - Healthier product recommendations
+1. **Barcode Scanning** - Enter a product barcode to retrieve data from the Open Food Facts API
+2. **Nutri-Score Analysis** - A-E grading system based on nutritional quality
+3. **NOVA Classification** - Evaluates food processing level from 1 (unprocessed) to 4 (ultra-processed)
+4. **Additives Analysis** - Identifies and explains food additives and their potential concerns
+5. **Ingredients Analysis** - Highlights ingredients like palm oil and evaluates vegan/vegetarian status
+6. **Allergen Detection** - Identifies common allergens and possible traces
+7. **Health Analysis** - Personalized evaluation based on user health profiles
+8. **Alternative Products** - Suggests healthier alternatives in the same category
 
 ## 📁 Project Structure
 
