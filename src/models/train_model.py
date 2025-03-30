@@ -4,9 +4,15 @@ import joblib
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
+import os
 
 # Load Dataset
-df = pd.read_csv("EATFIT_DIET.csv")
+try:
+    data_path = os.path.join(os.path.dirname(__file__), "..", "data", "EATFIT_DIET.csv")
+    df = pd.read_csv(data_path)
+except FileNotFoundError as e:
+    print("Error: File not found. Please check the file path.")
+    raise e
 
 # Convert Height to Meters & Calculate BMI
 df["Height (m)"] = df["Height (ft)"] * 0.3048  

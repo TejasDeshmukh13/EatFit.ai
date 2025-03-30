@@ -472,26 +472,113 @@
                         
                         <h6 class="mb-3">Additives</h6>
                         <div class="mb-3">
-                            <span class="ingredient-badge">
-                                <i class="bi bi-plus-circle-fill text-warning"></i>
-                                E322 - Lecithins
-                            </span>
-                            <span class="ingredient-badge">
-                                <i class="bi bi-plus-circle-fill text-warning"></i>
-                                E322i - Lecithin
-                            </span>
+                            {% if nutrition.additives_tags and nutrition.additives_tags|length > 0 %}
+                                {% for additive in nutrition.additives_tags %}
+                                    <div class="additive-container">
+                                        <span class="ingredient-badge" data-bs-toggle="collapse" data-bs-target="#additive-{{ loop.index }}" 
+                                              role="button" aria-expanded="false" aria-controls="additive-{{ loop.index }}">
+                                            <i class="bi bi-plus-circle-fill text-warning"></i>
+                                            {% if additive is string %}
+                                                {{ additive }}
+                                            {% else %}
+                                                {{ additive.code }} - {{ additive.name }}
+                                            {% endif %}
+                                        </span>
+                                        <div class="collapse mt-2 mb-2" id="additive-{{ loop.index }}">
+                                            <div class="card card-body bg-light">
+                                                <h6 class="mb-2">
+                                                    {% if additive is string %}
+                                                        {{ additive }}
+                                                    {% else %}
+                                                        {{ additive.code }} - {{ additive.name }}
+                                                    {% endif %}
+                                                </h6>
+                                                <p class="mb-1 small text-muted">
+                                                    {% if additive is string and "(" in additive %}
+                                                        {{ additive.split('(')[0] }}
+                                                    {% elif additive is mapping and additive.description %}
+                                                        {{ additive.description }}
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">No additives found in this product.</p>
+                            {% endif %}
                         </div>
                         
                         <h6 class="mb-3 mt-4">Ingredients Analysis</h6>
                         <div>
-                            <span class="ingredient-badge badge-danger">
-                                <span>🌴</span>
-                                Palm oil
-                            </span>
-                            <span class="ingredient-badge badge-info">
-                                <span>🥩</span>
-                                Non-vegan
-                            </span>
+                            {% if nutrition.ingredients_analysis_tags and nutrition.ingredients_analysis_tags|length > 0 %}
+                                <!-- Palm Oil Status - Only show when coming from API data -->
+                                {% if 'en:palm-oil' in nutrition.ingredients_analysis_tags or nutrition.get('ingredients_from_palm_oil_n', 0) > 0 %}
+                                    <span class="ingredient-badge badge-danger">
+                                        <span>🌴</span>
+                                        Contains palm oil
+                                    </span>
+                                {% elif 'en:palm-oil-free' in nutrition.ingredients_analysis_tags and session.get('barcode') %}
+                                    <span class="ingredient-badge badge-success">
+                                        <span>🌴</span>
+                                        Palm oil free
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Vegan Status - Only show when coming from API data -->
+                                {% if 'en:non-vegan' in nutrition.ingredients_analysis_tags and session.get('barcode') %}
+                                    <span class="ingredient-badge badge-info">
+                                        <span>🥩</span>
+                                        Non-vegan
+                                    </span>
+                                {% elif 'en:vegan' in nutrition.ingredients_analysis_tags and session.get('barcode') %}
+                                    <span class="ingredient-badge badge-success">
+                                        <span>🌱</span>
+                                        Vegan
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Vegetarian Status - Only show when coming from API data -->
+                                {% if 'en:non-vegetarian' in nutrition.ingredients_analysis_tags and session.get('barcode') %}
+                                    <span class="ingredient-badge badge-info">
+                                        <span>🍖</span>
+                                        Non-vegetarian
+                                    </span>
+                                {% elif 'en:vegetarian' in nutrition.ingredients_analysis_tags and session.get('barcode') %}
+                                    <span class="ingredient-badge badge-success">
+                                        <span>🥦</span>
+                                        Vegetarian
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Organic Status - Only show when coming from API data -->
+                                {% if 'en:organic' in nutrition.ingredients_analysis_tags and session.get('barcode') %}
+                                    <span class="ingredient-badge badge-success">
+                                        <span>🌿</span>
+                                        Organic
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Check for other ingredient analysis tags - Only show when coming from API data -->
+                                {% if session.get('barcode') %}
+                                    {% for tag in nutrition.ingredients_analysis_tags %}
+                                        {% if 'en:gluten-free' in tag %}
+                                            <span class="ingredient-badge badge-success">
+                                                <span>🌾</span>
+                                                Gluten-free
+                                            </span>
+                                        {% endif %}
+                                        {% if 'en:no-additives' in tag %}
+                                            <span class="ingredient-badge badge-success">
+                                                <span>✅</span>
+                                                No additives
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% else %}
+                                <p class="text-muted">No detailed ingredients analysis available.</p>
+                            {% endif %}
                         </div>
                         
                         <p class="text-muted mt-4 small">The analysis is based solely on the ingredients listed and does not take into account processing methods.</p>
@@ -579,7 +666,7 @@
                 <div class="conclusion-box p-4 rounded">
                     <div class="mb-4">
                         <h6 class="conclusion-title">
-                            {% if 'Exercise caution' in safety_review.conclusion %}
+                            {% if 'Caution' in safety_review.conclusion %}
                             <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
                             {% elif 'acceptable' in safety_review.conclusion %}
                             <i class="bi bi-lightning-fill text-info me-2"></i>
@@ -588,7 +675,7 @@
                             {% endif %}
                             Analysis Summary
                         </h6>
-                        <p class="mb-0">{{ safety_review.conclusion | safe }}</p>
+                        <p class="mb-0">{{ safety_review.conclusion | replace("Exercise caution", "Caution") | safe }}</p>
                     </div>
 
                     {% if safety_review.warnings %}
@@ -598,7 +685,7 @@
                             Health Warnings
                         </h6>
                         {% for warning in safety_review.warnings %}
-                        <div class="alert alert-danger mb-2">{{ warning }}</div>
+                        <div class="alert alert-danger mb-2">{{ warning | replace("Exercise caution", "Caution") }}</div>
                         {% endfor %}
                     </div>
                     {% endif %}

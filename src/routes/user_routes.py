@@ -29,19 +29,15 @@ def edit_health_data_form():
         flash('No health data found. Please create new entry.')
         return redirect(url_for('user.health_form'))
     
-    # Convert height from meters to decimal feet format for the form
+    # The height in the database is already in decimal feet format (e.g. 5.5)
+    # We just need to pass it directly to the form without conversion
     if health_data:
-        height_meters = health_data[2]
-        total_inches = height_meters * 39.37  # Convert to inches
-        feet = int(total_inches // 12)  # Integer division to get feet
-        inches = int(total_inches % 12)  # Remainder to get inches
+        height_decimal = float(health_data[2])
+        print(f"DEBUG: Height from DB in edit form: {height_decimal}")
         
-        # Format as decimal feet (e.g., 5.6 for 5'6")
-        decimal_feet = feet + (inches / 12)
-        
-        # Create a modified health_data tuple with the decimal feet
+        # Create a modified health_data tuple with the height
         health_data_list = list(health_data)
-        health_data_list[2] = decimal_feet  # Replace height with decimal feet
+        health_data_list[2] = height_decimal  # Use the direct height value
         health_data = tuple(health_data_list)
     
     return render_template('healthForm.html', health_data=health_data)
@@ -66,7 +62,7 @@ def edit_health_data():
         # Calculate BMI using the height in feet
         if height > 0:
             # Convert height to inches for BMI calculation
-            height_inches = (int(height) * 12) + ((height % 1) * 10)
+            height_inches = (int(height) * 12) + ((height % 1) * 12)
             # Convert weight from kg to lbs for imperial BMI calculation
             weight_lbs = weight * 2.20462
             # Calculate BMI using imperial formula: (weight in pounds * 703) / (height in inches)²
@@ -120,6 +116,8 @@ def submit_health_data():
         weight = float(request.form.get('weight', 0))
         age = int(request.form.get('age', 0))
         
+        print(f"DEBUG: Submitting health data - height from form: {height}")
+        
         # Health conditions
         diabetes = request.form.get('diabetes', 'none')
         bp_value = request.form.get('bloodPressure', 'normal')
@@ -128,7 +126,7 @@ def submit_health_data():
         # Calculate BMI using the height in feet
         if height > 0:
             # Convert height to inches for BMI calculation
-            height_inches = (int(height) * 12) + ((height % 1) * 10)
+            height_inches = height
             # Convert weight from kg to lbs for imperial BMI calculation
             weight_lbs = weight * 2.20462
             # Calculate BMI using imperial formula: (weight in pounds * 703) / (height in inches)²
@@ -253,15 +251,19 @@ def profile():
         # Format health_info to display height correctly
         formatted_health_info = None
         if health_info:
-            height_decimal = health_info[2]  # Height already in decimal feet
-            feet = int(height_decimal)
-            inches = int((height_decimal % 1) * 12)
+            # Get the exact height value from the database without modifications
+            height_decimal = float(health_info[2])  # Make sure to convert to float
+            print(f"DEBUG: Raw height from DB: {health_info[2]}, converted to float: {height_decimal}")
+            
+            # Don't convert for display - just show the height value as stored
+            feet = height_decimal
+            inches = 0
             
             # Create a dictionary to make accessing health data easier in the template
             formatted_health_info = {
                 'id': health_info[0],
                 'user_id': health_info[1],
-                'height': height_decimal,
+                'height': height_decimal,  # Store the exact height value from DB
                 'feet': feet,
                 'inches': inches,
                 'weight': health_info[3],

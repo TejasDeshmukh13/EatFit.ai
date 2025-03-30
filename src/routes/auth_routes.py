@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g, jsonify
 from flask_bcrypt import Bcrypt
 import os
 import io
+import base64
 from werkzeug.utils import secure_filename
 from flask import send_file
 from utils.common import allowed_file
@@ -119,4 +120,64 @@ def get_profile_image():
     if profile_image:
         return send_file(io.BytesIO(profile_image), mimetype='image/png')
     else:
-        return redirect(url_for('static', filename='default-avatar.png')) 
+        return redirect(url_for('static', filename='default-avatar.png'))
+
+@auth_bp.route('/save-profile-image', methods=['POST'])
+def save_profile_image():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'})
+    
+    try:
+        # Get the image data from the request
+        data = request.get_json()
+        if not data or 'image' not in data:
+            return jsonify({'success': False, 'message': 'No image data provided'})
+        
+        # Get the base64 image data
+        image_data = data['image']
+        
+        # Check if the image data is empty
+        if not image_data:
+            return jsonify({'success': False, 'message': 'Empty image data received'})
+        
+        # Check if the image is too large (max 5MB)
+        if len(image_data) > 5 * 1024 * 1024:  # 5MB in bytes
+            return jsonify({'success': False, 'message': f'Image size too large. Maximum size is 5MB, received {len(image_data) / 1024 / 1024:.2f}MB'})
+        
+        try:
+            # Split if data URL format is used
+            if ',' in image_data:
+                header, image_data = image_data.split(',', 1)
+                print(f"Image format: {header}")  # Log the image format
+            
+            # Decode base64 data
+            try:
+                binary_data = base64.b64decode(image_data)
+                print(f"Decoded image size: {len(binary_data)} bytes")  # Log the decoded size
+            except base64.binascii.Error as e:
+                return jsonify({'success': False, 'message': f'Invalid base64 encoding: {str(e)}'})
+            
+            # Verify the decoded data is not empty
+            if not binary_data:
+                return jsonify({'success': False, 'message': 'Decoded image data is empty'})
+            
+            # Save to database
+            try:
+                mysql = g.mysql
+                cur = mysql.connection.cursor()
+                cur.execute("UPDATE users SET profile_image = %s WHERE id = %s", 
+                           (binary_data, session['user_id']))
+                mysql.connection.commit()
+                cur.close()
+                
+                return jsonify({'success': True, 'message': 'Image saved successfully'})
+            except Exception as db_error:
+                print(f"Database error: {str(db_error)}")  # Log database errors
+                return jsonify({'success': False, 'message': f'Database error: {str(db_error)}'})
+            
+        except base64.binascii.Error as e:
+            return jsonify({'success': False, 'message': f'Invalid image data format: {str(e)}'})
+            
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")  # Log unexpected errors
+        return jsonify({'success': False, 'message': f'An unexpected error occurred: {str(e)}'}) 

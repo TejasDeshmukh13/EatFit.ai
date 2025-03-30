@@ -19,39 +19,45 @@ body {
 }
 
 .profile-section {
-    max-width: 1000px;
-    margin: 2rem auto;
+    max-width: 800px;
+    margin: 0 auto;
     padding: 2rem;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* Header Section */
 .profile-header {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border-color);
+    text-align: center;
     margin-bottom: 2rem;
 }
 
-.profile-picture {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: var(--light-bg);
-    border: 3px solid white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.profile-header h1 {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 600;
 }
 
-.profile-picture img {
+.profile-picture-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.profile-picture-wrapper {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.profile-picture {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: opacity 0.3s ease;
 }
 
 .camera-icon {
@@ -184,56 +190,134 @@ body {
 /* Flash Messages */
 .flash-container {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
+    top: 20px;
+    right: 20px;
     z-index: 1000;
+    max-width: 300px;
 }
 
 .flash-message {
-    padding: 1rem 1.5rem;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.flash-message.success {
+    background-color: #4CAF50;
+}
+
+.flash-message.danger {
+    background-color: #f44336;
+}
+
+.flash-message.warning {
+    background-color: #ff9800;
+}
+
+.flash-message.info {
+    background-color: #2196F3;
+}
+
+/* Loading animation for the upload button */
+.ri-loader-4-line {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Profile Picture Container */
+.profile-picture-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.upload-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 300px;
+}
+
+.choose-file-button,
+.upload-button {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: none;
     border-radius: 8px;
-    margin-bottom: 0.5rem;
     font-size: 0.875rem;
     font-weight: 500;
-    animation: slideIn 0.3s ease forwards;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.success {
-    background: #dcfce7;
-    color: var(--success-color);
+.choose-file-button {
+    background: var(--primary-color);
+    color: white;
 }
 
-.danger {
-    background: #fee2e2;
-    color: var(--danger-color);
+.choose-file-button:hover {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
 }
 
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
+.upload-button {
+    background: var(--success-color);
+    color: white;
+}
+
+.upload-button:hover:not(:disabled) {
+    background: #0d9488;
+    transform: translateY(-1px);
+}
+
+.upload-button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+}
+
+.file-info {
+    color: #64748b;
+    font-size: 0.875rem;
+    text-align: center;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .profile-section {
-        margin: 1rem;
-        padding: 1.5rem;
+        padding: 1rem;
     }
-
-    .profile-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 1.5rem;
+    
+    .profile-picture-wrapper {
+        width: 120px;
+        height: 120px;
     }
-
-    .profile-picture {
-        margin: 0 auto;
+    
+    .back-button-container {
+        padding: 0.75rem 1rem;
+    }
+    
+    .profile-header h1 {
+        font-size: 1.5rem;
     }
 
     .health-stats {
@@ -273,4 +357,33 @@ body {
     .secondary-button:hover {
         background: #475569;
     }
+}
+
+.back-button-container {
+    padding: 1rem 2rem;
+    margin-bottom: 1rem;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.back-button:hover {
+    background: var(--secondary-color);
+    transform: translateY(-1px);
+}
+
+.back-button i {
+    font-size: 1.25rem;
 }

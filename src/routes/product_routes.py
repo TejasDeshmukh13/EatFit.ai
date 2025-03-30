@@ -11,7 +11,7 @@ from utils.nutrition import (
 )
 from utils.allergies import map_allergens_to_ingredients
 from utils.conclusion import check_product_safety
-from models.food_analysis import analyze_product_with_off, ProductAnalysis
+from models.food_analysis import analyze_product_with_off, ProductAnalysis, get_product_from_off
 import logging
 import json
 import requests
@@ -338,20 +338,6 @@ def verify_extraction():
         product_info=product_info
     )
 
-def translate_ingredient(name):
-    translations = {
-        'sucre': 'sugar',
-        'huile de palme': 'palm oil',
-        'NOISETTES': 'hazelnuts',
-        'LAIT écrémé en poudre': 'skimmed milk powder',
-        'cacao maigre': 'low-fat cocoa',
-        'émulsifiants': 'emulsifiers',
-        'vanilline': 'vanillin',
-        'lécithines': 'lecithins',
-        'lécithines de SOJA': 'SOY lecithins'
-    }
-    return translations.get(name.lower(), name)
-
 @product_bp.route("/product_details")
 def product_details():
     """Display detailed product analysis including nutrition, processing, and ingredients"""
@@ -366,51 +352,79 @@ def product_details():
         logger.info(f"Initial nutrition data keys: {nutrition_data.keys()}")
         
         # If we have a barcode, ensure we have the latest analysis
-        if 'barcode' in session and session.get('from_barcode_only', False):
+        if 'barcode' in session:
             barcode = session['barcode']
-            logger.info(f"Fetching latest analysis for barcode: {barcode}")
+            logger.info(f"Getting latest data for barcode: {barcode}")
             
-            # Fetch fresh data from API
-            url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-            response = requests.get(url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 1:
-                    product = data.get('product', {})
+            # Get fresh data directly from OpenFoodFacts
+            try:
+                from models.food_analysis import get_product_from_off
+                product = get_product_from_off(barcode)
+                
+                if product:
+                    logger.info(f"Got fresh data from API for barcode {barcode}")
                     
-                    # Update nutrition data with API data
+                    # Update nutrition data with the latest API data
+                    # Update basic product info
+                    nutrition_data['product_name'] = product.get('product_name', 'Unknown Product')
+                    nutrition_data['brand'] = product.get('brands', 'Unknown Brand')
+                    nutrition_data['image_url'] = product.get('image_url')
+                    
+                    # Update nutriments
                     if 'nutriments' in product:
-                        nutrition_data.update(product['nutriments'])
+                        for key, value in product['nutriments'].items():
+                            nutrition_data[key] = value
                     
-                    # Get ingredients list
-                    if 'ingredients_text' in product:
-                        nutrition_data['ingredients_text'] = product['ingredients_text']
+                    # Copy all API data fields that should be used in the template
+                    for key in [
+                        'ingredients_text', 
+                        'additives_tags', 
+                        'ingredients_analysis_tags',
+                        'nova_group', 
+                        'nova_score', 
+                        'nutriscore_grade', 
+                        'allergens_tags', 
+                        'traces_tags', 
+                        'ingredients', 
+                        'is_vegan'
+                    ]:
+                        if key in product:
+                            nutrition_data[key] = product[key]
                     
-                    # Get detailed ingredients
-                    if 'ingredients' in product:
-                        nutrition_data['ingredients_detailed'] = []
-                        for ingredient in product['ingredients']:
-                            if isinstance(ingredient, dict):
-                                ingredient_info = {
-                                    'text': ingredient.get('text', ''),
-                                    'name': ingredient.get('id', '').split(':')[-1].replace('-', ' ').title()
-                                }
-                                nutrition_data['ingredients_detailed'].append(ingredient_info)
+                    # Specifically handle the palm oil field
+                    if 'ingredients_from_palm_oil_n' in product:
+                        nutrition_data['ingredients_from_palm_oil_n'] = product['ingredients_from_palm_oil_n']
+                        logger.info(f"Palm oil ingredients count: {product['ingredients_from_palm_oil_n']}")
+                    else:
+                        # Make sure it's set to 0 if not found to avoid template errors
+                        nutrition_data['ingredients_from_palm_oil_n'] = 0
+                    
+                    # For debugging, log what we got
+                    if 'additives_tags' in product:
+                        logger.info(f"Found {len(product['additives_tags'])} additives in API data")
+                    else:
+                        logger.warning("No additives_tags in API data")
                         
-                    # Get allergens and traces
-                    if 'allergens_tags' in product:
-                        nutrition_data['allergens_tags'] = [
-                            tag.split(':')[-1].replace('-', ' ').title() 
-                            for tag in product['allergens_tags']
-                        ]
-                    if 'traces_tags' in product:
-                        nutrition_data['traces_tags'] = [
-                            tag.split(':')[-1].replace('-', ' ').title() 
-                            for tag in product['traces_tags']
-                        ]
-                        
+                    if 'ingredients_analysis_tags' in product:
+                        logger.info(f"Found ingredients analysis tags: {product['ingredients_analysis_tags']}")
+                    else:
+                        logger.warning("No ingredients_analysis_tags in API data")
+                    
+                    # Store updated data in session
                     session['nutrition'] = nutrition_data
+            except Exception as e:
+                logger.error(f"Error fetching product data: {str(e)}")
+                flash("Could not fetch latest product data", "warning")
+        
+        # Make sure essential structures exist in nutrition_data to prevent template errors
+        if 'additives_tags' not in nutrition_data:
+            nutrition_data['additives_tags'] = []
+            
+        if 'ingredients_analysis_tags' not in nutrition_data:
+            nutrition_data['ingredients_analysis_tags'] = []
+            
+        if 'ingredients_from_palm_oil_n' not in nutrition_data:
+            nutrition_data['ingredients_from_palm_oil_n'] = 0
         
         # Get ingredients for allergy analysis
         ingredients = []
@@ -497,6 +511,18 @@ def product_details():
         nova_score = get_nova_score(nutrition_data)
         score = calculate_nutri_score(nutrition_data)
         
+        # For debugging, check what data we're sending to the template
+        logger.info(f"NOVA score: {nova_score}")
+        if 'additives_tags' in nutrition_data:
+            logger.info(f"Sending {len(nutrition_data['additives_tags'])} additives to template")
+        else:
+            logger.warning("No additives_tags in nutrition_data for template")
+            
+        if 'ingredients_analysis_tags' in nutrition_data:
+            logger.info(f"Sending ingredients analysis tags: {nutrition_data['ingredients_analysis_tags']}")
+        else:
+            logger.warning("No ingredients_analysis_tags in nutrition_data for template")
+        
         return render_template(
             'product_details.html',
             nutrition=nutrition_data,
@@ -509,7 +535,6 @@ def product_details():
             product_name=session.get('product_name', 'Unknown Product'),
             brand=session.get('brand', 'Unknown Brand')
         )
-        
     except Exception as e:
         logger.error(f"Error displaying product details: {str(e)}")
         flash(f"Error displaying product details: {str(e)}", "error")
@@ -584,82 +609,7 @@ def alternative_products():
         flash("An error occurred while finding alternatives. Please try again.", "error")
         return redirect(url_for('product.product_details'))
 
-@product_bp.route('/demo_product/<demo_id>')
-def demo_product(demo_id):
-    """Show demo products with predefined analysis"""
-    # Define demo product barcodes
-    demo_barcodes = {
-        'chocolate': '3017620422003',  # Nutella
-        'cereal': '5000127169389',    # Special K
-        'yogurt': '021908449004'      # Greek Yogurt
-    }
-    
-    try:
-        # Get the demo barcode or default to chocolate
-        barcode = demo_barcodes.get(demo_id, demo_barcodes['chocolate'])
-        
-        # Analyze the demo product
-        analysis = analyze_product_with_off(barcode)
-        
-        if not analysis:
-            # If Open Food Facts API fails, provide fallback data
-            flash("Using fallback demo product data", "warning")
-            fallback_data = {
-                'product_name': f'Demo {demo_id.title()} Product',
-                'brand': 'Demo Brand',
-                'nutrition': {'nutriscore_grade': 'C'},
-                'processing': {'nova_group': 3},
-                'ingredients': {
-                    'palm_oil': False,
-                    'vegan': True,
-                    'allergens': [],
-                    'traces': []
-                },
-                'additives': []
-            }
-            session['nutrition'] = fallback_data
-            session['product_name'] = fallback_data['product_name']
-            session['brand'] = fallback_data['brand']
-            session['barcode'] = barcode
-            session['from_barcode_only'] = True
-            
-            flash(f"Demo product loaded: {session['product_name']}", "success")
-            return redirect(url_for('product.product_details'))
-        
-        # Convert analysis to dictionary and verify it's valid
-        try:
-            analysis_dict = analysis.to_dict()
-            
-            # Ensure we have required nested dictionaries
-            if 'nutrition' not in analysis_dict:
-                analysis_dict['nutrition'] = {'nutriscore_grade': 'C'}
-            if 'processing' not in analysis_dict:
-                analysis_dict['processing'] = {'nova_group': 'Unknown'}
-            if 'ingredients' not in analysis_dict:
-                analysis_dict['ingredients'] = {}
-                
-            # Store analysis in session
-            session['nutrition'] = analysis_dict
-            session['product_name'] = analysis_dict.get('product_name', f'Demo {demo_id.title()} Product')
-            session['brand'] = analysis_dict.get('brand', 'Demo Brand')
-            session['barcode'] = barcode
-            session['from_barcode_only'] = True
-            
-            flash(f"Demo product loaded: {session['product_name']}", "success")
-            
-            # Redirect to product details
-            return redirect(url_for('product.product_details'))
-            
-        except Exception as e:
-            print(f"Error processing demo product analysis: {str(e)}")
-            flash("Error processing demo product data", "error")
-            return redirect(url_for('product.upload_file'))
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()  # Print detailed stack trace
-        flash(f"Error loading demo product: {str(e)}", "error")
-        return redirect(url_for('product.upload_file'))
+
 
 @product_bp.route('/nutrition')
 def nutrition_landing():
@@ -668,129 +618,3 @@ def nutrition_landing():
 @product_bp.route('/barcode_lookup')
 def barcode_lookup():
     return render_template('barcode_lookup.html') 
-
-def get_db_connection():
-    mysql = g.mysql
-    return mysql.connection.cursor()
-
-def get_meal_alternatives(meal_type, user_profile):
-    """
-    Generate alternative meal options for the specified meal type
-    In a real app, this would use a food database or ML model
-    """
-    # Define alternative meals for each type
-    alternatives = {
-        'breakfast': [
-            {
-                'name': 'Protein-Packed Breakfast',
-                'items': [
-                    {'name': 'Scrambled eggs with spinach', 'quantity': '3 eggs'},
-                    {'name': 'Whole grain toast', 'quantity': '1 slice'},
-                    {'name': 'Avocado', 'quantity': '1/4'},
-                    {'name': 'Black coffee', 'quantity': None}
-                ],
-                'calories': 400
-            },
-            {
-                'name': 'Smoothie Bowl',
-                'items': [
-                    {'name': 'Banana smoothie bowl', 'quantity': '1 bowl'},
-                    {'name': 'Mixed berries', 'quantity': '1/2 cup'},
-                    {'name': 'Granola', 'quantity': '1/4 cup'},
-                    {'name': 'Chia seeds', 'quantity': '1 tbsp'}
-                ],
-                'calories': 380
-            },
-            {
-                'name': 'Traditional Indian',
-                'items': [
-                    {'name': 'Vegetable poha', 'quantity': '1 cup'},
-                    {'name': 'Roasted peanuts', 'quantity': '1 tbsp'},
-                    {'name': 'Mint chutney', 'quantity': '2 tbsp'},
-                    {'name': 'Masala chai', 'quantity': '1 cup'}
-                ],
-                'calories': 320
-            }
-        ],
-        'lunch': [
-            {
-                'name': 'Mediterranean Bowl',
-                'items': [
-                    {'name': 'Falafel', 'quantity': '4 pieces'},
-                    {'name': 'Tabbouleh salad', 'quantity': '1/2 cup'},
-                    {'name': 'Hummus', 'quantity': '2 tbsp'},
-                    {'name': 'Whole wheat pita', 'quantity': '1/2 piece'}
-                ],
-                'calories': 520
-            },
-            {
-                'name': 'Asian Fusion',
-                'items': [
-                    {'name': 'Tofu stir-fry', 'quantity': '1 cup'},
-                    {'name': 'Brown rice', 'quantity': '1/2 cup'},
-                    {'name': 'Edamame', 'quantity': '1/4 cup'},
-                    {'name': 'Miso soup', 'quantity': '1 cup'}
-                ],
-                'calories': 480
-            },
-            {
-                'name': 'Indian Thali',
-                'items': [
-                    {'name': 'Lentil dal', 'quantity': '1/2 cup'},
-                    {'name': 'Vegetable curry', 'quantity': '1/2 cup'},
-                    {'name': 'Brown rice', 'quantity': '1/3 cup'},
-                    {'name': 'Cucumber raita', 'quantity': '1/4 cup'}
-                ],
-                'calories': 550
-            }
-        ],
-        'dinner': [
-            {
-                'name': 'Italian Night',
-                'items': [
-                    {'name': 'Zucchini pasta', 'quantity': '1 cup'},
-                    {'name': 'Turkey meatballs', 'quantity': '3 pieces'},
-                    {'name': 'Tomato sauce', 'quantity': '1/4 cup'},
-                    {'name': 'Side salad with vinaigrette', 'quantity': '1 cup'}
-                ],
-                'calories': 480
-            },
-            {
-                'name': 'Mexican Bowl',
-                'items': [
-                    {'name': 'Black bean and corn bowl', 'quantity': '1 cup'},
-                    {'name': 'Grilled chicken', 'quantity': '3 oz'},
-                    {'name': 'Guacamole', 'quantity': '2 tbsp'},
-                    {'name': 'Salsa', 'quantity': '2 tbsp'}
-                ],
-                'calories': 520
-            },
-            {
-                'name': 'Indian Dinner',
-                'items': [
-                    {'name': 'Paneer tikka', 'quantity': '4 pieces'},
-                    {'name': 'Roti', 'quantity': '1 small'},
-                    {'name': 'Palak (spinach) curry', 'quantity': '1/2 cup'},
-                    {'name': 'Cucumber salad', 'quantity': '1/2 cup'}
-                ],
-                'calories': 490
-            }
-        ]
-    }
-    
-    # Filter alternatives based on user profile
-    filtered_alternatives = alternatives.get(meal_type, [])
-    
-    # Apply dietary restrictions
-    diet_type = user_profile.get('diet_type')
-    if diet_type == 'vegetarian':
-        filtered_alternatives = [alt for alt in filtered_alternatives if not any(
-            'chicken' in item['name'].lower() or 
-            'turkey' in item['name'].lower() or
-            'beef' in item['name'].lower() or
-            'fish' in item['name'].lower() or
-            'salmon' in item['name'].lower()
-            for item in alt['items']
-        )]
-    
-    return filtered_alternatives 

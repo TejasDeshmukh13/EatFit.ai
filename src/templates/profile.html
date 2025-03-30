@@ -11,9 +11,10 @@
     <div class="profile-section">
         <!-- Back Button -->
         <div class="back-button-container">
-            <button onclick="window.location.href='/'" class="secondary-button">
-                <i class="ri-arrow-left-line"></i> Back to Home
-            </button>
+            <a href="{{ url_for('product.landing_page') }}" class="back-button">
+                <i class="ri-arrow-left-line"></i>
+                <span>Back to Home</span>
+            </a>
         </div>
         
         <!-- Flash Messages -->
@@ -32,18 +33,29 @@
 
         <!-- Profile Header -->
         <div class="profile-header">
-            <div class="profile-picture">
-                <img id="profileImage" src="{{ image_url }}" alt="Profile Image">
-                <button type="button" onclick="document.getElementById('uploadImage').click()" class="camera-icon">
-                    <i class="ri-camera-fill"></i>
-                </button>
-                <input type="file" id="uploadImage" name="profile_image" accept="image/*" hidden>
+            <h1>Profile Settings</h1>
+        </div>
+
+        <div class="profile-picture-container">
+            <div class="profile-picture-wrapper">
+                <img id="profileImage" src="{{ url_for('auth.get_profile_image') }}" alt="Profile Picture" class="profile-picture">
             </div>
             
-            <div class="profile-info">
-                <h1 class="profile-name">{{ username }}</h1>
-                <p class="profile-email">{{ email }}</p>
+            <div class="upload-controls">
+                <input type="file" id="uploadImage" accept="image/*" style="display: none;">
+                <button type="button" class="choose-file-button" onclick="document.getElementById('uploadImage').click()">
+                    Choose Image
+                </button>
+                <button type="button" id="submitUpload" class="upload-button" disabled>
+                    Upload Image
+                </button>
+                <div id="fileInfo" class="file-info">No file chosen</div>
             </div>
+        </div>
+
+        <div class="profile-info">
+            <h1 class="profile-name">{{ username }}</h1>
+            <p class="profile-email">{{ email }}</p>
         </div>
 
         <!-- Health Information -->
@@ -53,7 +65,7 @@
                 <div class="health-stats">
                     <div class="health-stat">
                         <div class="stat-label">Height</div>
-                        <div class="stat-value">{{ health_info.feet }}' {{ health_info.inches }}"</div>
+                        <div class="stat-value">{{ health_info.height }}</div>
                     </div>
                     
                     <div class="health-stat">
@@ -121,6 +133,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='profile.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
 </body>
 </html>

@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional
 from enum import Enum
 import requests
-import json
 
 class ProcessingLevel(Enum):
     UNPROCESSED = 1
@@ -103,6 +102,97 @@ class ProductAnalysis:
             }
         }
 
+# Known additives database with descriptions
+ADDITIVES_INFO = {
+    "E100": "Curcumin - Yellow-orange coloring from turmeric",
+    "E101": "Riboflavin - Yellow coloring (Vitamin B2)",
+    "E102": "Tartrazine - Yellow synthetic dye",
+    "E104": "Quinoline Yellow - Yellow synthetic dye",
+    "E120": "Cochineal - Red coloring from insects",
+    "E122": "Azorubine - Red synthetic coloring",
+    "E129": "Allura Red AC - Red synthetic coloring",
+    "E131": "Patent Blue V - Blue synthetic coloring",
+    "E140": "Chlorophylls - Green pigment from plants",
+    "E141": "Copper complexes of chlorophylls - Green coloring",
+    "E150a": "Plain caramel - Brown coloring",
+    "E160a": "Alpha-carotene - Orange coloring",
+    "E160c": "Paprika extract - Red coloring from peppers",
+    "E162": "Beetroot Red - Natural red coloring",
+    "E170": "Calcium carbonate - White mineral",
+    "E200": "Sorbic acid - Preservative",
+    "E202": "Potassium sorbate - Preservative",
+    "E210": "Benzoic acid - Preservative",
+    "E211": "Sodium benzoate - Preservative",
+    "E212": "Potassium benzoate - Preservative",
+    "E220": "Sulphur dioxide - Preservative/antioxidant",
+    "E221": "Sodium sulphite - Preservative",
+    "E223": "Sodium metabisulphite - Preservative/antioxidant",
+    "E224": "Potassium metabisulphite - Preservative/antioxidant",
+    "E250": "Sodium nitrite - Preservative (cured meats)",
+    "E251": "Sodium nitrate - Preservative (cured meats)",
+    "E260": "Acetic acid - Preservative (vinegar)",
+    "E270": "Lactic acid - Acidity regulator",
+    "E280": "Propionic acid - Preservative (bread)",
+    "E290": "Carbon dioxide - Packaging gas",
+    "E296": "Malic acid - Acidity regulator/flavor enhancer",
+    "E297": "Fumaric acid - Acidity regulator",
+    "E300": "Ascorbic acid - Antioxidant (Vitamin C)",
+    "E301": "Sodium ascorbate - Antioxidant",
+    "E306": "Tocopherol-rich extract - Antioxidant (Vitamin E)",
+    "E307": "Alpha-tocopherol - Antioxidant (Vitamin E)",
+    "E322": "Lecithins - Emulsifier (from soy or eggs)",
+    "E325": "Sodium lactate - Antioxidant/humectant",
+    "E330": "Citric acid - Acidity regulator/antioxidant",
+    "E331": "Sodium citrates - Acidity regulator/emulsifier",
+    "E332": "Potassium citrates - Acidity regulator",
+    "E333": "Calcium citrates - Acidity regulator/firming agent",
+    "E334": "Tartaric acid - Acidity regulator",
+    "E335": "Sodium tartrates - Acidity regulator/stabilizer",
+    "E336": "Potassium tartrates - Stabilizer/sequestrant",
+    "E340": "Potassium phosphates - Acidity regulator/stabilizer",
+    "E350": "Sodium malates - Acidity regulator",
+    "E375": "Niacin - Vitamin B3",
+    "E392": "Rosemary extracts - Antioxidant",
+    "E400": "Alginic acid - Thickener/stabilizer",
+    "E401": "Sodium alginate - Thickener/stabilizer",
+    "E406": "Agar - Thickener/gelling agent",
+    "E407": "Carrageenan - Thickener/stabilizer",
+    "E407a": "Processed eucheuma seaweed - Thickener",
+    "E410": "Locust bean gum - Thickener/stabilizer",
+    "E412": "Guar gum - Thickener/stabilizer",
+    "E413": "Tragacanth - Thickener/stabilizer",
+    "E414": "Acacia gum - Thickener/stabilizer",
+    "E415": "Xanthan gum - Thickener/stabilizer",
+    "E422": "Glycerol - Humectant/sweetener",
+    "E440": "Pectins - Gelling agent/thickener",
+    "E441": "Gelatine - Gelling agent",
+    "E450": "Diphosphates - Emulsifier/stabilizer",
+    "E460": "Cellulose - Anti-caking agent/emulsifier",
+    "E461": "Methyl cellulose - Thickener/emulsifier",
+    "E464": "Hydroxypropyl methyl cellulose - Thickener/emulsifier",
+    "E471": "Mono- and diglycerides of fatty acids - Emulsifier",
+    "E472e": "Mono- and diacetyl tartaric acid esters - Emulsifier",
+    "E476": "Polyglycerol polyricinoleate - Emulsifier (chocolate)",
+    "E481": "Sodium stearoyl-2-lactylate - Emulsifier",
+    "E500": "Sodium carbonates - Acidity regulator/raising agent",
+    "E501": "Potassium carbonates - Acidity regulator/stabilizer",
+    "E503": "Ammonium carbonates - Raising agent",
+    "E504": "Magnesium carbonates - Anti-caking agent",
+    "E570": "Fatty acids - Anti-caking agent/foam stabilizer",
+    "E621": "Monosodium glutamate - Flavor enhancer (MSG)",
+    "E631": "Sodium inosinate - Flavor enhancer",
+    "E901": "Beeswax - Glazing agent",
+    "E903": "Carnauba wax - Glazing agent",
+    "E950": "Acesulfame K - Artificial sweetener",
+    "E951": "Aspartame - Artificial sweetener",
+    "E953": "Isomalt - Sugar substitute/sweetener",
+    "E954": "Saccharin - Artificial sweetener",
+    "E955": "Sucralose - Artificial sweetener",
+    "E960": "Steviol glycosides - Natural sweetener (stevia)",
+    "E965": "Maltitol - Sweetener/stabilizer",
+    "E1442": "Hydroxy propyl distarch phosphate - Modified starch"
+}
+
 # Database of common additives
 ADDITIVES_DB = {
     "E322": Additive(
@@ -142,210 +232,220 @@ PROCESSING_MARKERS = {
     )
 }
 
-def get_product_from_off(barcode: str) -> Optional[Dict]:
+def get_product_from_off(barcode):
     """
-    Fetch product data from Open Food Facts API.
+    Get product information from the Open Food Facts API.
+    This function is the primary method for fetching product data.
+    
+    Args:
+        barcode (str): The product barcode to fetch
+        
+    Returns:
+        dict: Dictionary containing product data or None if not found
     """
     try:
+        if not barcode or len(barcode) < 8:
+            return None
+            
         url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
         response = requests.get(url)
+        
+        if response.status_code != 200:
+            return None
+            
         data = response.json()
         
-        if data.get('status') == 1:
-            return data['product']
-        return None
-    except Exception as e:
-        print(f"Error fetching from Open Food Facts: {e}")
-        return None
-
-def extract_additives_from_off(product_data: Dict) -> List[Dict]:
-    """Extract additives information from Open Food Facts data."""
-    additives = []
-    
-    # Get additives from various possible fields
-    additive_tags = product_data.get('additives_tags', [])
-    
-    for tag in additive_tags:
-        # Extract E-number from tag (e.g., 'en:e322' -> 'E322')
-        code = tag.split(':')[-1].upper()
-        if not code.startswith('E'):
-            code = 'E' + code
-            
-        # Add to list with basic info
-        additives.append({
-            'code': code,
-            'name': product_data.get('additives_original_tags', {}).get(code, code),
-            'text': None  # Additional info can be added here if available
-        })
-    
-    return additives
-
-def analyze_ingredients_from_off(product_data: Dict) -> List[IngredientAnalysis]:
-    """Extract detailed ingredient information from Open Food Facts data."""
-    ingredients_analysis = []
-    
-    if 'ingredients' in product_data:
-        for ing in product_data['ingredients']:
-            # Extract ingredient information
-            name = ing.get('text', '').lower()
-            percentage = ing.get('percent_estimate', None)
-            vegan = ing.get('vegan', 'yes') != 'no'
-            vegetarian = ing.get('vegetarian', 'yes') != 'no'
-            from_palm_oil = ing.get('from_palm_oil', '0') == '1'
-            organic = ing.get('organic', '0') == '1'
-            
-            # Check if it's an allergen
-            allergen = False
-            if 'allergens' in product_data:
-                allergen = name in [a.lower() for a in product_data.get('allergens_tags', [])]
-            
-            ingredients_analysis.append(IngredientAnalysis(
-                name=name,
-                percentage=percentage,
-                vegan=vegan,
-                vegetarian=vegetarian,
-                from_palm_oil=from_palm_oil,
-                organic=organic,
-                allergen=allergen
-            ))
-    
-    return ingredients_analysis
-
-def analyze_product_with_off(barcode: str) -> Optional[ProductAnalysis]:
-    """Analyze a food product using Open Food Facts data."""
-    try:
-        # Get product data from Open Food Facts
-        product_data = get_product_from_off(barcode)
-        if not product_data:
-            print(f"No data found for barcode: {barcode}")
+        if data.get('status') != 1 or 'product' not in data:
             return None
-
-        # Initialize variables with safe defaults
-        processing_markers = []
-        additives = []
-        contains_palm_oil = False
-        is_vegan = True
-        max_processing_level = ProcessingLevel.UNPROCESSED
-        ingredients_analysis = []
-        allergens = []
-        traces = []
-        serving_size = None
-        nova_group = None
-        nutriscore_grade = None
-
-        # Get basic product info (with safe defaults)
-        product_name = product_data.get('product_name', f"Product {barcode}")
-        brand = product_data.get('brands', 'Unknown Brand')
-        image_url = product_data.get('image_url')
-
-        # Get NOVA group and processing level
-        nova_group = product_data.get('nova_group')
-        if nova_group:
-            if nova_group == 4:
-                max_processing_level = ProcessingLevel.ULTRA_PROCESSED
-            elif nova_group == 3:
-                max_processing_level = ProcessingLevel.PROCESSED
-            elif nova_group == 2:
-                max_processing_level = ProcessingLevel.MINIMALLY_PROCESSED
-
-        # Get Nutri-Score
-        if 'nutriscore_grade' in product_data:
-            nutriscore_grade = product_data.get('nutriscore_grade', '').upper()
-
-        # Analyze ingredients
-        try:
-            ingredients = product_data.get('ingredients', [])
-            if ingredients and isinstance(ingredients, list):
-                for ing in ingredients:
-                    if isinstance(ing, dict):
-                        name = ing.get('text', '')
-                        if name:
-                            analysis = IngredientAnalysis(
-                                name=name,
-                                percentage=ing.get('percent'),
-                                vegan='vegan' in ing.get('vegan', '').lower(),
-                                vegetarian='vegetarian' in ing.get('vegetarian', '').lower(),
-                                from_palm_oil=ing.get('from_palm_oil', False),
-                                organic=ing.get('organic', False),
-                                allergen=ing.get('allergen', False)
-                            )
-                            ingredients_analysis.append(analysis)
-        except Exception as e:
-            print(f"Error analyzing ingredients: {str(e)}")
-
-        # Check palm oil
-        try:
-            contains_palm_oil = (
-                product_data.get('ingredients_from_palm_oil_n', 0) > 0 or
-                product_data.get('ingredients_that_may_be_from_palm_oil_n', 0) > 0
-            )
-        except Exception as e:
-            print(f"Error checking palm oil: {str(e)}")
-
-        # Check vegan status
-        try:
-            if 'ingredients_analysis_tags' in product_data:
-                ingredients_tags = product_data.get('ingredients_analysis_tags', [])
-                if isinstance(ingredients_tags, list):
-                    is_vegan = 'en:non-vegan' not in ingredients_tags
-        except Exception as e:
-            print(f"Error checking vegan status: {str(e)}")
-
-        # Get allergens and traces
-        try:
-            allergens_tags = product_data.get('allergens_tags', [])
-            if isinstance(allergens_tags, list):
-                allergens = [
-                    allergen.split(':')[-1].replace('-', ' ').title()
-                    for allergen in allergens_tags
-                ]
+            
+        product = data['product']
+        
+        # Process additives more comprehensively
+        if 'additives_tags' in product:
+            # Format additives to include proper E-codes with names and descriptions
+            formatted_additives = []
+            for tag in product['additives_tags']:
+                # Extract the additive code from the tag
+                code = tag.split(':')[-1]
                 
-            traces_tags = product_data.get('traces_tags', [])
-            if isinstance(traces_tags, list):
-                traces = [
-                    trace.split(':')[-1].replace('-', ' ').title()
-                    for trace in traces_tags
-                ]
-        except Exception as e:
-            print(f"Error parsing allergens/traces: {str(e)}")
+                # Format properly for display
+                if code.startswith('e'):
+                    display_code = 'E' + code[1:]
+                elif not code.startswith('E'):
+                    display_code = 'E' + code
+                else:
+                    display_code = code
+                
+                # Try to get the name from additives_n field or original tags
+                name = None
+                if 'additives_original_tags' in product:
+                    for original in product['additives_original_tags']:
+                        if code in original.lower():
+                            parts = original.split(':')
+                            if len(parts) > 1:
+                                name = parts[-1].replace('-', ' ').title()
+                                break
+                
+                # If we didn't find a name, check additives_old_tags
+                if not name and 'additives_old_tags' in product:
+                    for old in product['additives_old_tags']:
+                        if code in old.lower():
+                            parts = old.split(':')
+                            if len(parts) > 1:
+                                name = parts[-1].replace('-', ' ').title()
+                                break
+                
+                # If still no name, use the display code
+                if not name:
+                    name = display_code
+                
+                # Check our additives database for detailed description
+                if display_code in ADDITIVES_INFO:
+                    formatted_additives.append(ADDITIVES_INFO[display_code])
+                else:
+                    # Add to formatted list
+                    formatted_additives.append(f"{display_code} - {name}")
+            
+            # Replace the original additives_tags with our better formatted version
+            product['additives_tags'] = formatted_additives
+        else:
+            # Initialize as empty list if not present
+            product['additives_tags'] = []
+            
+        # Process ingredients analysis tags
+        if 'ingredients_analysis_tags' in product:
+            # Clean up the tags for template use
+            cleaned_tags = []
+            for tag in product['ingredients_analysis_tags']:
+                # Keep the original format for template conditionals
+                cleaned_tags.append(tag.lower())
+            product['ingredients_analysis_tags'] = cleaned_tags
+        else:
+            # Initialize as empty list if not present
+            product['ingredients_analysis_tags'] = []
+            
+        return product
+        
+    except Exception as e:
+        print(f"Error fetching product from OpenFoodFacts: {str(e)}")
+        return None
 
+def analyze_product_with_off(barcode):
+    """
+    Analyze a product using the Open Food Facts database.
+    This is the primary function for analyzing food products.
+    
+    Args:
+        barcode (str): The product barcode to analyze
+        
+    Returns:
+        ProductAnalysis: An object containing the analysis results or None if failed
+    """
+    try:
+        # Get product information from Open Food Facts API
+        product = get_product_from_off(barcode)
+        
+        if not product:
+            return None
+            
+        # Initialize with safe defaults
+        nova_group = product.get('nova_group')
+        if nova_group is None:
+            nova_group = 4  # Default to ultra-processed if not specified
+            
+        if not isinstance(nova_group, int):
+            try:
+                nova_group = int(nova_group)
+            except (ValueError, TypeError):
+                nova_group = 4
+                
+        # Get product name and brand
+        product_name = product.get('product_name', 'Unknown product')
+        brand = product.get('brands', 'Unknown brand')
+        image_url = product.get('image_url')
+        
+        # Get additives
+        additives = []
+        additives_tags = product.get('additives_tags', [])
+        
+        for additive_code in additives_tags:
+            code = additive_code.upper().strip() if isinstance(additive_code, str) else str(additive_code)
+            
+            # Skip if not a valid additive code
+            if not code.startswith('E'):
+                continue
+                
+            # Try to find in our database
+            if code in ADDITIVES_DB:
+                additives.append(ADDITIVES_DB[code])
+            else:
+                # Create a basic additive object for unknown additives
+                additives.append(
+                    Additive(
+                        code=code,
+                        name=code,
+                        category=AdditiveCategory.PRESERVATIVE,  # Default category
+                        description=f"Additive {code}",
+                        concerns=[],
+                        vegan=True,  # Assume vegan by default
+                        processing_level=ProcessingLevel.PROCESSED
+                    )
+                )
+                
+        # Determine processing level
+        if nova_group == 1:
+            processing_level = ProcessingLevel.UNPROCESSED
+        elif nova_group == 2:
+            processing_level = ProcessingLevel.MINIMALLY_PROCESSED
+        elif nova_group == 3:
+            processing_level = ProcessingLevel.PROCESSED
+        else:  # nova_group == 4 or unknown
+            processing_level = ProcessingLevel.ULTRA_PROCESSED
+            
+        # Determine processing markers
+        processing_markers = []
+        if additives:
+            processing_markers.append("Contains additives")
+        if processing_level == ProcessingLevel.ULTRA_PROCESSED:
+            processing_markers.append("Ultra-processed food")
+            
+        # Check for palm oil
+        contains_palm_oil = False
+        if 'ingredients_from_palm_oil_n' in product:
+            try:
+                palm_oil_count = int(product['ingredients_from_palm_oil_n'])
+                contains_palm_oil = palm_oil_count > 0
+            except (ValueError, TypeError):
+                contains_palm_oil = False
+                
+        # Determine vegan status
+        is_vegan = True
+        if 'vegan' in product:
+            is_vegan = product['vegan'] not in ('no', 'non-vegan')
+            
+        # Get allergens and traces
+        allergens = product.get('allergens_tags', [])
+        allergens = [allergen.split(':')[-1] for allergen in allergens if ':' in allergen]
+        
+        traces = product.get('traces_tags', [])
+        traces = [trace.split(':')[-1] for trace in traces if ':' in trace]
+        
+        # Get nutriscore grade
+        nutriscore_grade = product.get('nutriscore_grade', '?')
+        
         # Get serving size
-        serving_size = product_data.get('serving_size')
-
-        # Process additives
-        try:
-            additive_tags = product_data.get('additives_tags', [])
-            if isinstance(additive_tags, list):
-                for tag in additive_tags:
-                    try:
-                        code = tag.split(':')[-1].upper()
-                        if not code.startswith('E'):
-                            code = 'E' + code
-                        
-                        name = product_data.get('additives_original_tags', {}).get(code, code)
-                        description = product_data.get('additives_debug_tags', {}).get(code, '')
-                        
-                        additive = Additive(
-                            code=code,
-                            name=name,
-                            description=description
-                        )
-                        additives.append(additive)
-                    except Exception as additive_err:
-                        print(f"Error processing additive {tag}: {str(additive_err)}")
-        except Exception as e:
-            print(f"Error processing additives: {str(e)}")
-
-        # Create and return the product analysis
-        return ProductAnalysis(
-            processing_level=max_processing_level,
+        serving_size = product.get('serving_size', '')
+        
+        # Create and return product analysis
+        analysis = ProductAnalysis(
+            processing_level=processing_level,
             processing_markers=processing_markers,
             additives=additives,
             contains_palm_oil=contains_palm_oil,
             is_vegan=is_vegan,
             nova_group=nova_group,
             nutriscore_grade=nutriscore_grade,
-            ingredients_analysis=ingredients_analysis,
+            ingredients_analysis=None,  # Not implemented in this version
             allergens=allergens,
             traces=traces,
             serving_size=serving_size,
@@ -353,6 +453,9 @@ def analyze_product_with_off(barcode: str) -> Optional[ProductAnalysis]:
             brand=brand,
             image_url=image_url
         )
+        
+        return analysis
+        
     except Exception as e:
         print(f"Error analyzing product: {str(e)}")
         return None

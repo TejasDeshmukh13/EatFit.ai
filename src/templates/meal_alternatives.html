@@ -146,7 +146,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{{ url_for('diet.diet_recommendation') }}" class="back-button">
+<a href="{{ url_for('diet_bp.get_meal') }}" class="back-button">
     <i class="bi bi-arrow-left"></i> Back to Diet Recommendation
 </a>
 
@@ -249,7 +249,7 @@
                 // In a real app, this would send an AJAX request to update the user's meal plan
                 // For now, we'll just simulate success with a timeout
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('diet.diet_recommendation') }}";
+                    window.location.href = "{{ url_for('diet_bp.get_meal') }}";
                 }, 1000);
             });
         });

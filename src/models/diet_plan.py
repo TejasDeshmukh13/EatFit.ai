@@ -42,8 +42,14 @@ disease_mapping = {
 }
 
 def calculate_bmi(weight, height_ft):
-    """Calculate BMI and return category."""
+    """
+    Legacy BMI calculation function - kept for reference but no longer actively used.
+    The application now retrieves BMI directly from the database.
+    """
+    # Convert decimal feet directly to meters (1 foot = 0.3048 meters)
     height_m = height_ft * 0.3048
+    
+    # Calculate BMI
     bmi = weight / (height_m ** 2)
 
     if bmi < 18.5:
@@ -55,11 +61,23 @@ def calculate_bmi(weight, height_ft):
     else:
         return bmi, "Obese"
 
-def recommend_meal(age, weight, height_ft, disease):
+def recommend_meal(age, weight, height_ft, disease, stored_bmi=None):
     """Predict and return meal recommendations using the ML models."""
-    # Calculate BMI
+    # Use the stored BMI value directly - no calculation
+    bmi = stored_bmi if stored_bmi is not None else 0
+    
+    # Determine BMI category based on the value
+    if bmi < 18.5:
+        bmi_category = "Underweight"
+    elif 18.5 <= bmi < 24.9:
+        bmi_category = "Normal weight"
+    elif 25 <= bmi < 29.9:
+        bmi_category = "Overweight"
+    else:
+        bmi_category = "Obese"
+    
+    # Convert height from decimal feet to meters directly
     height_m = height_ft * 0.3048
-    bmi, bmi_category = calculate_bmi(weight, height_ft)
     
     # Normalize and map the disease to available options
     disease = str(disease).strip().lower() if disease else "none"

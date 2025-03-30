@@ -11,32 +11,21 @@ logger = logging.getLogger(__name__)
 
 def fetch_by_barcode(barcode):
     """
-    Fetch nutrition data from Open Food Facts API using a barcode
+    Fetch nutrition data from Open Food Facts API using a barcode.
+    Uses the improved product fetching function from food_analysis module.
     """
     # Validate barcode format (should be numeric and typically 8, 12, or 13 digits)
     if not barcode.isdigit():
         return {'error': 'Invalid barcode format. Barcode should contain only numbers.'}
         
     try:
-        # Construct API URL
-        url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+        # Use the improved product fetcher
+        from models.food_analysis import get_product_from_off
         
-        # Make the request
-        response = requests.get(url, timeout=10)
+        product = get_product_from_off(barcode)
         
-        # Check if request was successful
-        if response.status_code != 200:
-            return {'error': f'API request failed with status code {response.status_code}'}
-        
-        # Parse the JSON response
-        data = response.json()
-        
-        # Check if product was found
-        if data.get('status') != 1:
+        if not product:
             return {'error': 'Product not found in database'}
-        
-        # Extract product data
-        product = data.get('product', {})
         
         # Extract nutrition data
         nutrients = product.get('nutriments', {})
@@ -512,13 +501,64 @@ def get_nova_score(nutrition_data):
     4 - Ultra-processed foods
     """
     # Get NOVA group from nutrition data
-    nova_group = nutrition_data.get('nova_group', 4)  # Default to 4 if not found
+    nova_group = nutrition_data.get('nova_group', None)
     
+    # If not found directly, try to find in nested dictionaries
+    if nova_group is None:
+        nova_group = (
+            nutrition_data.get('processing', {}).get('nova_group') or
+            nutrition_data.get('nova_score', None)  # Don't default yet
+        )
+    
+    # Try to convert to int, but don't default to 4 yet
     try:
-        nova_group = int(nova_group)
+        if nova_group is not None:
+            nova_group = int(nova_group)
     except (ValueError, TypeError):
-        nova_group = 4  # Default to group 4 if invalid value
+        nova_group = None
         
+    # Count ultra-processing markers
+    markers_count = 0
+    
+    # Check additives - these are ultra-processing markers
+    # If there are multiple additives, that's a strong marker for ultra-processing
+    additives = nutrition_data.get('additives_tags', [])
+    if additives and isinstance(additives, list):
+        for additive in additives:
+            markers_count += 1
+            # If it's already formatted as "E123 - Name", don't count it twice
+            if not (isinstance(additive, str) and " - " in additive):
+                # Extra check for additives that indicate ultra-processing
+                if any(marker in additive.lower() for marker in 
+                      ['color', 'colour', 'flavour', 'flavor', 'sweetener', 'emulsifier']):
+                    markers_count += 1
+    
+    # Check for specific ingredients or processing methods
+    ingredients_analysis_tags = nutrition_data.get('ingredients_analysis_tags', [])
+    if ingredients_analysis_tags and isinstance(ingredients_analysis_tags, list):
+        # Count specific ultra-processing markers in the ingredients
+        ultra_processing_tags = [
+            'en:flavour', 'en:flavor', 'en:artificial-flavour', 
+            'en:artificial-flavor', 'en:hydrolysed', 'en:hydrogenated',
+            'en:preservative', 'en:emulsifier', 'en:colour', 'en:color'
+        ]
+        for tag in ingredients_analysis_tags:
+            if any(process_tag in tag.lower() for process_tag in ultra_processing_tags):
+                markers_count += 1
+    
+    # If markers_count > 0, it's likely at least NOVA group 3 or 4
+    if markers_count > 0 and (nova_group is None or nova_group < 3):
+        nova_group = 4 if markers_count >= 3 else 3
+    
+    # If we still don't have a group, use default logic based on what we've learned
+    if nova_group is None:
+        if markers_count >= 3:
+            nova_group = 4
+        elif markers_count > 0:
+            nova_group = 3
+        else:
+            nova_group = 1  # Default to minimally processed if no markers and no group specified
+    
     # Ensure nova_group is between 1 and 4
     nova_group = max(1, min(4, nova_group))
     
@@ -532,5 +572,5 @@ def get_nova_score(nutrition_data):
     return {
         'score': nova_group,
         'description': descriptions[nova_group],
-        'markers_count': 2 if nova_group == 4 else 1 if nova_group == 3 else 0
+        'markers_count': markers_count
     } 

@@ -501,14 +501,21 @@
             }
             
             // Convert decimal feet height to meters for BMI calculation
-            const feet = Math.floor(heightDecimal);
-            const inches = (heightDecimal - feet) * 12;
+            let feet = Math.floor(heightDecimal);
+            let inches = Math.floor((heightDecimal - feet) * 12);  // Use Math.floor to match backend behavior
+            
+            // Handle edge case: if inches becomes 12, adjust feet and inches
+            if (inches === 12) {
+                feet += 1;
+                inches = 0;
+            }
+            
             const totalInches = (feet * 12) + inches;
             const heightMeters = totalInches * 0.0254;
             
             // Calculate BMI
             const bmi = weight / (heightMeters * heightMeters);
-            bmiValue.textContent = bmi;
+            bmiValue.textContent = bmi.toFixed(1);  // Round to 1 decimal place
         }
         
         // Calculate BMI on page load if height and weight have values
