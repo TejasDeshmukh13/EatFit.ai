@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+
+{% block title %}Product Nutrition Details{% endblock %}
+{% block header_title %}Product Analysis Results{% endblock %}
+
+{% block extra_css %}
+    <style>
+    /* Unique Product Details Page Styling */
+    .product-card {
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.4s ease;
+        margin-bottom: 2rem;
+    }
+    
+    .product-header {
+        position: relative;
+        padding: 2rem;
+        border-radius: 20px 20px 0 0;
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+        color: white;
+    }
+    
+    .product-image-container {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+            border-radius: 15px;
+        margin: 1rem 0;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background-color: white;
+        transition: transform 0.5s ease;
+    }
+    
+    .product-image:hover {
+        transform: scale(1.05);
+    }
+    
+    /* Hexagonal Score Display */
+    .hexagon-container {
+        display: flex;
+        justify-content: center;
+        margin: 2rem 0;
+    }
+    
+    .hexagon {
+        position: relative;
+        width: 100px;
+        height: 115px;
+        margin: 0 15px;
+        background-color: white;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .hexagon::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: inherit;
+            border-radius: 10px;
+        transform: rotate(60deg);
+        z-index: -1;
+    }
+    
+    .hexagon::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: inherit;
+            border-radius: 10px;
+        transform: rotate(-60deg);
+        z-index: -2;
+    }
+    
+    .hexagon-content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .score-circle {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 5px;
+    }
+    
+    .score-label {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.2;
+    }
+    
+    /* Nutri-Score colors */
+    .score-a { background-color: #0a8e45; }
+    .score-b { background-color: #7ac547; }
+    .score-c { background-color: #ffc734; }
+    .score-d { background-color: #ff7d24; }
+    .score-e { background-color: #e63e11; }
+    
+    /* Nova Score colors */
+    .nova-1 { background-color: #00796B; }
+    .nova-2 { background-color: #1976D2; }
+    .nova-3 { background-color: #FFA000; }
+    .nova-4 { background-color: #D32F2F; }
+    
+    /* Section designs */
+    .nutrition-section {
+        margin-bottom: 2rem;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .section-header {
+        padding: 1rem 1.5rem;
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-header i {
+        margin-right: 0.5rem;
+        font-size: 1.25rem;
+        color: #6e8efb;
+    }
+    
+    .section-content {
+        padding: 1.5rem;
+        background-color: white;
+    }
+    
+    /* Nutrient bars */
+    .nutrient-bar {
+        height: 10px;
+        border-radius: 5px;
+        margin-top: 5px;
+        background-color: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .nutrient-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 1s ease-in-out;
+    }
+    
+    .nutrient-high { background-color: #e63e11; }
+    .nutrient-medium { background-color: #ffc734; }
+    .nutrient-low { background-color: #7ac547; }
+    
+    .nutrient-item {
+        margin-bottom: 1.5rem;
+    }
+    
+    .nutrient-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+    }
+    
+    .nutrient-name {
+        font-weight: 500;
+    }
+    
+    .nutrient-value {
+        font-weight: 600;
+    }
+    
+    /* Badges */
+    .ingredient-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        margin: 0.25rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .ingredient-badge i, .ingredient-badge span {
+        margin-right: 0.5rem;
+    }
+    
+    .badge-warning {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .badge-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .badge-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    /* Nutritional table */
+    .nutrition-table {
+            width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    
+    .nutrition-table th {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        font-weight: 600;
+    }
+    
+    .nutrition-table td {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .nutrition-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-action {
+        padding: 1rem;
+            border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-action i {
+        margin-right: 0.5rem;
+        font-size: 1.25rem;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Animated elements */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .hexagon-container {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .hexagon {
+            margin-bottom: 1rem;
+        }
+        
+        .action-buttons {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Allergen List Scrollbar Styling */
+    .allergen-list {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+    
+    .allergen-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .allergen-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .allergen-list::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+    
+    .allergen-list::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="product-card">
+    <div class="product-header animate-fade-in">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1>{% if nutrition.get('product_name') %}{{ nutrition.get('product_name') }}{% else %}Product Analysis{% endif %}</h1>
+                {% if nutrition.get('brand') %}
+                <p class="mb-0">By {{ nutrition.get('brand') }}</p>
+                {% endif %}
+                {% if session.get('barcode') %}
+                <div class="mt-2 d-flex align-items-center">
+                    <i class="bi bi-upc-scan me-2"></i>
+                    <span>{{ session.get('barcode') }}</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="badge bg-primary rounded-pill fs-6 px-3 py-2">
+                    <i class="bi bi-check-circle-fill me-1"></i> Analysis Complete
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-content">
+        <!-- Product Image (if available) -->
+        {% if not session.get('from_barcode_only', False) and image != 'no-image.png' %}
+        <div class="product-image-container animate-fade-in delay-1">
+            <img src="{{ url_for('static', filename='uploads/' + image) }}" 
+                 alt="Product Image" 
+                 class="product-image">
+        </div>
+        {% endif %}
+        
+        <!-- Hexagonal Score Indicators -->
+        <div class="hexagon-container">
+            <!-- Nutri-Score Hexagon -->
+            <div class="hexagon animate-fade-in delay-2">
+                <div class="hexagon-content">
+                    <div class="score-circle score-{{ score|lower }}">{{ score }}</div>
+                    <div class="score-label">Nutri-Score</div>
+                </div>
+            </div>
+            
+            <!-- NOVA Score Hexagon -->
+            <div class="hexagon animate-fade-in delay-3">
+                <div class="hexagon-content">
+                    <div class="score-circle nova-{{ nova_score.score }}">{{ nova_score.score }}</div>
+                    <div class="score-label">Food Processing</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Analysis Sections -->
+        <div class="row">
+            <!-- Nutrition Analysis -->
+            <div class="col-lg-6 animate-fade-in delay-2">
+                <div class="nutrition-section">
+                    <div class="section-header">
+                        <i class="bi bi-pie-chart-fill"></i>
+                        <span>Nutritional Profile</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="nutrient-item">
+                            <div class="nutrient-header">
+                                <div class="nutrient-name">Fat</div>
+                                <div class="nutrient-value">{{ nutrition.get('fat_100g', 0) }}g</div>
+                            </div>
+                            <div class="nutrient-bar">
+                                <div class="nutrient-fill nutrient-high" style="width: {{ (nutrition.get('fat_100g', 0) / 70 * 100)|round(1) }}%;"></div>
+                            </div>
+                            <small class="text-danger">High quantity</small>
+                        </div>
+                        
+                        <div class="nutrient-item">
+                            <div class="nutrient-header">
+                                <div class="nutrient-name">Saturated Fat</div>
+                                <div class="nutrient-value">{{ nutrition.get('saturated-fat_100g', 0) }}g</div>
+                            </div>
+                            <div class="nutrient-bar">
+                                <div class="nutrient-fill nutrient-high" style="width: {{ (nutrition.get('saturated-fat_100g', 0) / 20 * 100)|round(1) }}%;"></div>
+                            </div>
+                            <small class="text-danger">High quantity</small>
+                        </div>
+                        
+                        <div class="nutrient-item">
+                            <div class="nutrient-header">
+                                <div class="nutrient-name">Sugars</div>
+                                <div class="nutrient-value">{{ nutrition.get('sugars_100g', 0) }}g</div>
+                            </div>
+                            <div class="nutrient-bar">
+                                <div class="nutrient-fill nutrient-high" style="width: {{ (nutrition.get('sugars_100g', 0) / 90 * 100)|round(1) }}%;"></div>
+                            </div>
+                            <small class="text-danger">High quantity</small>
+                        </div>
+                        
+                        <div class="nutrient-item">
+                            <div class="nutrient-header">
+                                <div class="nutrient-name">Salt</div>
+                                <div class="nutrient-value">{{ nutrition.get('salt_100g', 0) }}g</div>
+                            </div>
+                            <div class="nutrient-bar">
+                                <div class="nutrient-fill nutrient-low" style="width: {{ (nutrition.get('salt_100g', 0) / 6 * 100)|round(1) }}%;"></div>
+                            </div>
+                            <small class="text-success">Low quantity</small>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <p class="mb-1">Nutri-Score: <strong>{{ score }}</strong></p>
+                            <p class="text-muted small">{% if score in 'DE' %}Lower{% elif score == 'C' %}Moderate{% else %}Higher{% endif %} nutritional quality</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Processing Information -->
+            <div class="col-lg-6 animate-fade-in delay-3">
+                <div class="nutrition-section">
+                    <div class="section-header">
+                        <i class="bi bi-gear-fill"></i>
+                        <span>Food Processing</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-{{ 'danger' if nova_score.score > 2 else 'warning' if nova_score.score == 2 else 'success' }} text-white fw-bold text-center me-3" 
+                                 style="width: 50px; height: 50px; line-height: 50px; font-size: 1.5rem; border-radius: 10px;">
+                                {{ nova_score.score }}
+                            </div>
+                            <div>
+                                <h5 class="mb-0">{{ nova_score.description }}</h5>
+                                <p class="text-muted mb-0">{{ nova_score.markers_count }} ultra-processing markers</p>
+                            </div>
+                        </div>
+                        
+                        <h6 class="mb-3">Additives</h6>
+                        <div class="mb-3">
+                            <span class="ingredient-badge">
+                                <i class="bi bi-plus-circle-fill text-warning"></i>
+                                E322 - Lecithins
+                            </span>
+                            <span class="ingredient-badge">
+                                <i class="bi bi-plus-circle-fill text-warning"></i>
+                                E322i - Lecithin
+                            </span>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Ingredients Analysis</h6>
+                        <div>
+                            <span class="ingredient-badge badge-danger">
+                                <span>🌴</span>
+                                Palm oil
+                            </span>
+                            <span class="ingredient-badge badge-info">
+                                <span>🥩</span>
+                                Non-vegan
+                            </span>
+                        </div>
+                        
+                        <p class="text-muted mt-4 small">The analysis is based solely on the ingredients listed and does not take into account processing methods.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Allergy Information -->
+        <div class="nutrition-section animate-fade-in delay-3">
+            <div class="section-header">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>Allergy Information</span>
+            </div>
+            <div class="section-content">
+                {% if allergies %}
+                    {% set has_high_risk = false %}
+                    {% set high_risk_allergens = [] %}
+                    {% set other_allergens = [] %}
+                    {% for allergy in allergies %}
+                        {% if allergy.Action == 'Avoid' and allergy.Confidence == 'High' %}
+                            {% set _ = high_risk_allergens.append(allergy) %}
+                            {% set has_high_risk = true %}
+                        {% elif allergy.Action == 'Caution' or allergy.Confidence == 'Medium' %}
+                            {% set _ = other_allergens.append(allergy) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="row">
+                        {% if has_high_risk %}
+                        <!-- High Risk Allergens -->
+                        <div class="{% if has_high_risk %}col-md-6{% else %}col-md-12{% endif %} mb-3">
+                            <div class="alert alert-danger mb-0">
+                                <h6 class="mb-2"><i class="bi bi-exclamation-octagon-fill"></i> Contains:</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for allergy in high_risk_allergens %}
+                                        <span class="badge bg-danger">{{ allergy.Ingredients }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if other_allergens %}
+                        <!-- Other Allergens -->
+                        <div class="{% if has_high_risk %}col-md-6{% else %}col-md-12{% endif %} mb-3">
+                            <div class="alert alert-warning mb-0">
+                                <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill"></i> May contain:</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for allergy in other_allergens %}
+                                        <span class="badge bg-warning text-dark">{{ allergy.Ingredients }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No common allergens detected.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Safety Conclusion -->
+        <div class="nutrition-section animate-fade-in delay-4">
+            <div class="section-header">
+                <i class="bi bi-clipboard2-pulse-fill"></i>
+                <span>Health Analysis</span>
+            </div>
+            <div class="section-content">
+                {% if not is_logged_in %}
+                <div class="alert alert-info">
+                    <i class="bi bi-person-fill me-2"></i>
+                    <strong>Sign in for personalized health recommendations!</strong>
+                    <p class="mb-0 mt-2">Create an account or sign in to receive personalized health analysis based on your profile.</p>
+                    <div class="mt-3">
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm me-2">Sign In</a>
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-sm">Create Account</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="conclusion-box p-4 rounded">
+                    <div class="mb-4">
+                        <h6 class="conclusion-title">
+                            {% if 'Exercise caution' in safety_review.conclusion %}
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                            {% elif 'acceptable' in safety_review.conclusion %}
+                            <i class="bi bi-lightning-fill text-info me-2"></i>
+                            {% else %}
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            {% endif %}
+                            Analysis Summary
+                        </h6>
+                        <p class="mb-0">{{ safety_review.conclusion | safe }}</p>
+                    </div>
+
+                    {% if safety_review.warnings %}
+                    <div class="warnings-section mb-4">
+                        <h6 class="mb-3">
+                            <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+                            Health Warnings
+                        </h6>
+                        {% for warning in safety_review.warnings %}
+                        <div class="alert alert-danger mb-2">{{ warning }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if safety_review.safe_nutrients %}
+                    <div class="safe-nutrients-section">
+                        <h6 class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            Healthy Nutrient Levels
+                        </h6>
+                        <div class="alert alert-success">
+                            <ul class="mb-0">
+                                {% for nutrient in safety_review.safe_nutrients %}
+                                <li>{{ nutrient }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Detailed Nutrition Information -->
+        <div class="nutrition-section animate-fade-in delay-4 mt-4">
+            <div class="section-header">
+                <i class="bi bi-table"></i>
+                <span>Detailed Nutrition (per 100g/ml)</span>
+            </div>
+            <div class="section-content">
+                <div class="table-responsive">
+                    <table class="nutrition-table">
+                        <thead>
+                            <tr>
+                                <th>Nutrient</th>
+                                <th>Value</th>
+                                <th>% of RDA*</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Energy</td>
+                                <td>{{ nutrition.get('energy-kcal_100g', nutrition.get('energy-kcal', nutrition.get('energy_kcal', 'N/A'))) }} kcal</td>
+                                <td>{% set energy = nutrition.get('energy-kcal_100g', nutrition.get('energy-kcal', nutrition.get('energy_kcal', 0))) %}{{ (energy / 2000 * 100)|round(1) if energy != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Fat</td>
+                                <td>{{ nutrition.get('fat_100g', nutrition.get('fat', 'N/A')) }} g</td>
+                                <td>{% set fat = nutrition.get('fat_100g', nutrition.get('fat', 0)) %}{{ (fat / 70 * 100)|round(1) if fat != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Saturated Fat</td>
+                                <td>{{ nutrition.get('saturated-fat_100g', nutrition.get('saturated_fat', 'N/A')) }} g</td>
+                                <td>{% set sat_fat = nutrition.get('saturated-fat_100g', nutrition.get('saturated_fat', 0)) %}{{ (sat_fat / 20 * 100)|round(1) if sat_fat != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Carbohydrates</td>
+                                <td>{{ nutrition.get('carbohydrates_100g', nutrition.get('carbohydrates', 'N/A')) }} g</td>
+                                <td>{% set carbs = nutrition.get('carbohydrates_100g', nutrition.get('carbohydrates', 0)) %}{{ (carbs / 300 * 100)|round(1) if carbs != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Sugars</td>
+                                <td>{{ nutrition.get('sugars_100g', nutrition.get('sugars', 'N/A')) }} g</td>
+                                <td>{% set sugars = nutrition.get('sugars_100g', nutrition.get('sugars', 0)) %}{{ (sugars / 90 * 100)|round(1) if sugars != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Fiber</td>
+                                <td>{{ nutrition.get('fiber_100g', nutrition.get('fiber', 'N/A')) }} g</td>
+                                <td>{% set fiber = nutrition.get('fiber_100g', nutrition.get('fiber', 0)) %}{{ (fiber / 30 * 100)|round(1) if fiber != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Protein</td>
+                                <td>{{ nutrition.get('proteins_100g', nutrition.get('protein', 'N/A')) }} g</td>
+                                <td>{% set protein = nutrition.get('proteins_100g', nutrition.get('protein', 0)) %}{{ (protein / 50 * 100)|round(1) if protein != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                            <tr>
+                                <td>Salt</td>
+                                <td>{{ nutrition.get('salt_100g', nutrition.get('salt', 'N/A')) }} g</td>
+                                <td>{% set salt = nutrition.get('salt_100g', nutrition.get('salt', 0)) %}{{ (salt / 6 * 100)|round(1) if salt != 'N/A' else '0.0' }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted small mt-2">*RDA: Recommended Daily Allowance based on a 2000 kcal diet</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons animate-fade-in delay-5">
+            <a href="{{ url_for('product.alternative_products') }}" class="btn btn-success btn-action">
+                <i class="bi bi-shuffle"></i> Find Healthier Options
+            </a>
+            <a href="{{ url_for('product.upload_file') }}" class="btn btn-primary btn-action">
+                <i class="bi bi-camera-fill"></i> Scan Another Product
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate nutrient bars after load
+        setTimeout(function() {
+            const nutrientBars = document.querySelectorAll('.nutrient-fill');
+            nutrientBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 100);
+            });
+        }, 500);
+    });
+</script>
+{% endblock %}

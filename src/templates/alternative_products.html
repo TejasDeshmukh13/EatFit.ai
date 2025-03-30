@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Alternative Products{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">Healthier Alternatives</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if current_product %}
+    <div class="alert alert-info mb-4">
+        <p class="mb-0">Showing healthier alternatives to: <strong>{{ current_product }}</strong></p>
+    </div>
+    {% endif %}
+    
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for alt in alternatives %}
+        <div class="col">
+            <div class="card product-card h-100">
+                <div class="card-img-container">
+                    {% if alt.image_url %}
+                    <img src="{{ alt.image_url }}" class="card-img-top" alt="{{ alt.product_name }}" 
+                         loading="lazy" onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                    {% else %}
+                    <div class="text-center p-4 bg-light">
+                        <span class="text-muted">No image available</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body">
+                    <h5 class="card-title text-truncate" title="{{ alt.product_name }}">{{ alt.product_name }}</h5>
+                    {% if alt.brand %}
+                    <p class="card-subtitle mb-3 text-muted">{{ alt.brand }}</p>
+                    {% endif %}
+                    
+                    <div class="scores mb-3">
+                        <div class="nutri-score">
+                            <span class="badge 
+                                {% if alt.nutriscore_grade == 'A' %}bg-success
+                                {% elif alt.nutriscore_grade == 'B' %}bg-success-light
+                                {% elif alt.nutriscore_grade == 'C' %}bg-warning
+                                {% elif alt.nutriscore_grade == 'D' %}bg-warning-dark
+                                {% else %}bg-danger{% endif %} p-2 rounded-pill">
+                                Nutri-Score: {{ alt.nutriscore_grade }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="reasons">
+                        <h6 class="text-muted mb-2">Why it's better:</h6>
+                        <ul class="list-unstyled">
+                            {% for reason in alt.reason.split(" • ") %}
+                            <li><i class="bi bi-check-circle-fill text-success"></i> {{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                No alternative products found. Try scanning a different product.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="mt-4 text-center">
+        <a href="{{ url_for('product.product_details') }}" class="btn btn-primary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Product Details
+        </a>
+        <a href="{{ url_for('product.upload_file') }}" class="btn btn-outline-primary">
+            <i class="bi bi-camera-fill me-2"></i>Scan New Product
+        </a>
+    </div>
+</div>
+
+<style>
+    .product-card {
+        transition: transform 0.2s;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        height: 100%;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+    }
+    .card-img-container {
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f8f9fa;
+        padding: 1rem;
+    }
+    .card-img-container img {
+        max-height: 100%;
+        width: auto;
+        object-fit: contain;
+    }
+    .bg-success-light {
+        background-color: #28a745;
+    }
+    .bg-warning-dark {
+        background-color: #fd7e14;
+    }
+    .reasons li {
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: start;
+    }
+    .reasons i {
+        margin-right: 0.5rem;
+        margin-top: 0.2rem;
+    }
+    .scores .badge {
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}

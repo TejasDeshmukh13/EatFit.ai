@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - Healthy Food Store</title>
+    <link rel="stylesheet" href="{{ url_for('cart.static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('cart.static', filename='product-page.css') }}">
+    <link rel="stylesheet" href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="product-page-container">
+        <!-- Left Navigation -->
+        <nav class="side-nav">
+            <div class="nav-item">
+                <a href="{{ url_for('cart.index') }}" class="home-link">
+                    <i class="las la-home"></i> Home
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.snacks') }}" {% if request.endpoint == 'cart.snacks' %}class="active"{% endif %}>Snacks</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.breakfast') }}" {% if request.endpoint == 'cart.breakfast' %}class="active"{% endif %}>Breakfast & Spreads</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.chocolates') }}" {% if request.endpoint == 'cart.chocolates' %}class="active"{% endif %}>Chocolates & Desserts</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.cold_drinks') }}" {% if request.endpoint == 'cart.cold_drinks' %}class="active"{% endif %}>Cold Drinks & Juices</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.dairy') }}" {% if request.endpoint == 'cart.dairy' %}class="active"{% endif %}>Dairy, Bread & Eggs</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.instant') }}" {% if request.endpoint == 'cart.instant' %}class="active"{% endif %}>Instant Foods</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.groceries') }}" {% if request.endpoint == 'cart.groceries' %}class="active"{% endif %}>Daily Use Groceries</a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.supplements') }}" {% if request.endpoint == 'cart.supplements' %}class="active"{% endif %}>Supplements & More</a>
+            </div>
+        </nav>
+
+        <!-- Middle Products Section -->
+        <main class="products-section">
+            <h2>{% block category_title %}{% endblock %}</h2>
+            <div class="products-grid" id="products-container">
+                <!-- Products will be loaded via JavaScript -->
+            </div>
+            <!-- Hidden element to store product data -->
+            <script id="products-data" type="application/json">
+                {{ products|tojson|safe }}
+            </script>
+        </main>
+
+        <!-- Right Filters Section -->
+        <aside class="filters-section">
+            <div class="filter-group">
+                <h3>Health Filters</h3>
+                <div class="filter-options">
+                    <label><input type="radio" name="health" value="normal" checked> Normal</label>
+                    <label><input type="radio" name="health" value="obesity"> Obesity</label>
+                    <label><input type="radio" name="health" value="diabetes"> Diabetes</label>
+                    <label><input type="radio" name="health" value="hypertension"> Hypertension</label>
+                    <label><input type="radio" name="health" value="heart"> Heart</label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <h3>Sort By</h3>
+                <select id="sort-select">
+                    <option value="">Select Sorting</option>
+                    <option value="price-high-low">Price: High to Low</option>
+                    <option value="price-low-high">Price: Low to High</option>
+                    <option value="weight-high-low">Weight: High to Low</option>
+                    <option value="weight-low-high">Weight: Low to High</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- Shopping Cart Modal -->
+        <div id="shopping-cart-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Shopping Cart</h2>
+                <div id="cart-items"></div>
+                <div class="cart-total">
+                    <span>Total: ₹</span>
+                    <span id="cart-total-amount">0.00</span>
+                </div>
+                <div class="cart-actions">
+                    <button onclick="clearCart()" class="clear-cart">Clear Cart</button>
+                    <button class="checkout">Checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('cart.static', filename='products.js') }}"></script>
+</body>
+</html> 

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EatFit - Your Healthy Food Companion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing_page.css') }}">
+</head>
+<body>
+    <!-- Loader -->
+    <div id="loader">
+        <div class="loader-spinner"></div>
+        <h2>Loading...</h2>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" style="display: none;">
+        <!-- Flash Messages -->
+        <div id="flash-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Header -->
+        <div id="header">
+            <div id="navbar">
+                <div id="logo">EatFit</div>
+
+                <!-- Mobile Menu Toggle -->
+                <button id="mobile-menu-toggle" aria-label="Toggle menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+
+                <!-- Navigation Container -->
+                <div id="nav-container">
+                    <div id="nav-part1">
+                        <ul>
+                            <li><a href="#hero">Home</a></li>
+                            <li><a href="#features">Features</a></li>
+                            <li><a href="#about-us">About us</a></li>
+                            <li><a href="{{ url_for('user.profile') }}">Profile</a></li>
+                        </ul>
+                    </div>
+
+                    <div id="nav-part2">
+                        <i id="theme-toggle" class="ri-moon-line"></i>
+                        {% if 'user_id' in session %}
+                            <a href="{{ url_for('user.profile') }}"><button id="user-email">{{ session['user_email'] }}</button></a>
+                            <a href="{{ url_for('auth.logout') }}"><button id="logout">Logout</button></a>
+                        {% else %}
+                            <a href="{{ url_for('auth.login') }}"><button id="btn1">Login</button></a>
+                            <a href="{{ url_for('auth.signup') }}"><button id="btn3">Sign Up</button></a>
+                        {% endif %}
+                        <a href="{{ url_for('product.upload_file') }}"><button id="start-free-trial">Get Started</button></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <div id="main">
+            <div id="hero">
+                <h1 id="line1">Make Healthier Food Choices<br>With Smart Analysis</h1>
+                <h4 id="line2">Analyze food products, get personalized recommendations, and make informed decisions about your nutrition.</h4>
+                <div id="buttons">
+                    <a href="{{ url_for('product.upload_file') }}"><button id="start-free-trial">Get Started Now</button></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div id="features">
+            <div id="animate">
+                <h3 class="animate-character">Our Features</h3>
+            </div>
+
+            <div id="features-list">
+                <div class="feature">
+                    <a href="{{ url_for('product.upload_file') }}">
+                        <img class="img" src="{{ url_for('static', filename='images/pack_fd_re.jpg') }}" alt="Food Product Review">
+                        <h4>Food Product Analysis</h4>
+                    </a>
+                    <p>Get detailed nutritional analysis and health insights for any packaged food product.</p>
+                </div>
+
+                <div class="feature">
+                    <a href="{{ url_for('product.alternative_products') }}">
+                        <img class="img" src="{{ url_for('static', filename='images/alt_prd.jpg') }}" alt="Alternative Products">
+                        <h4>Smart Alternatives</h4>
+                    </a>
+                    <p>Discover healthier alternatives to your favorite food products based on your preferences.</p>
+                </div>
+
+                <div class="feature">
+                    <a href="{{ url_for('diet.diet_recommendation') }}">
+                        <img class="img" src="{{ url_for('static', filename='images/diet.jpg') }}" alt="Diet Recommendations">
+                        <h4>Personalized Diet Plans</h4>
+                    </a>
+                    <p>Get customized diet recommendations tailored to your health goals and dietary requirements.</p>
+                </div>
+
+                <div class="feature">
+                    <a href="{{ url_for('cart.index') }}">
+                        <img class="img" src="{{ url_for('static', filename='images/cart.jpg') }}" alt="Smart Cart">
+                        <h4>Smart Shopping Cart</h4>
+                    </a>
+                    <p>Build and manage your healthy shopping cart with nutritional insights and recommendations.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Us Section -->
+        <div id="about-us">
+            <h2>About EatFit</h2>
+            <p>
+                At EatFit, we're passionate about helping you make informed decisions about your nutrition. Our platform combines advanced food analysis technology with personalized recommendations to guide you towards healthier food choices. Whether you're managing specific dietary requirements or simply aiming to eat better, we're here to support your journey to a healthier lifestyle.
+            </p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/landing_page.js') }}"></script>
+    <script>
+        window.addEventListener('load', function () {
+            const loader = document.getElementById('loader');
+            loader.classList.add('fade-out');
+            
+            setTimeout(() => {
+                loader.style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }, 1000);
+        });
+
+        // Mobile Menu Toggle Script
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.getElementById('nav-container').classList.toggle('active');
+            document.body.classList.toggle('menu-open');
+        });
+
+        // Close menu when clicking on links
+        document.querySelectorAll('#nav-container a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobile-menu-toggle').classList.remove('active');
+                document.getElementById('nav-container').classList.remove('active');
+                document.body.classList.remove('menu-open');
+            });
+        });
+    </script>
+</body>
+</html>

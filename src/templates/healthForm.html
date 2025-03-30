@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Check Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1d4ed8;
+            --text-color: #1e293b;
+            --light-bg: #f8fafc;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            color: var(--text-color);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-section-title i {
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-color);
+            background: var(--light-bg);
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .input-group > div {
+            flex: 1;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        button i {
+            font-size: 1.25rem;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .flash-message.success {
+            background: #dcfce7;
+            color: var(--success-color);
+        }
+
+        .flash-message.danger {
+            background: #fee2e2;
+            color: var(--danger-color);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text-color: #f1f5f9;
+                --light-bg: #1e293b;
+                --border-color: #334155;
+            }
+
+            body {
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            }
+
+            .container {
+                background: #0f172a;
+            }
+
+            input, select {
+                background: #1e293b;
+                color: #f1f5f9;
+            }
+
+            input::placeholder {
+                color: #64748b;
+            }
+        }
+    </style>
+</head>
+<!-- Modified health_data.html -->
+<body>
+    <div class="container">
+        <h2>Health Check Form</h2>
+        
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        <i class="ri-{{ 'check' if category == 'success' else 'error-warning' }}-line"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form action="{{ url_for('user.edit_health_data') if health_data else url_for('user.submit_health_data') }}" method="POST">
+            <!-- Basic Measurements -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="ri-ruler-line"></i>
+                    Basic Measurements
+                </div>
+                
+                <div class="input-group">
+                    <div class="form-group">
+                        <label for="height">Height (in feet)</label>
+                        <input type="number" id="height" name="height" min="0" max="8" step="0.1" required
+                               placeholder="e.g. 5.6 for 5'6""
+                               {% if health_data %}value="{{ health_data[2] }}"{% endif %}>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="weight">Weight (kg)</label>
+                        <input type="number" id="weight" name="weight" step="0.1" 
+                               placeholder="Enter weight in kg"
+                               value="{{ health_data[3] if health_data else '' }}" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" name="age" 
+                           placeholder="Enter your age"
+                           value="{{ health_data[6] if health_data else '' }}" required>
+                </div>
+            </div>
+
+            <!-- Health Conditions -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="ri-heart-pulse-line"></i>
+                    Health Conditions
+                </div>
+                
+                <div class="form-group">
+                    <label for="diabetes">Diabetes Type</label>
+                    <select id="diabetes" name="diabetes">
+                        <option value="none" {{ 'selected' if health_data and health_data[7] == 'none' else '' }}>None</option>
+                        <option value="type1" {{ 'selected' if health_data and health_data[7] == 'type1' else '' }}>Type 1</option>
+                        <option value="type2" {{ 'selected' if health_data and health_data[7] == 'type2' else '' }}>Type 2</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bloodPressure">Blood Pressure</label>
+                    <select id="bloodPressure" name="bloodPressure">
+                        <option value="normal" {{ 'selected' if health_data and health_data[8] == 'normal' else '' }}>Normal</option>
+                        <option value="low" {{ 'selected' if health_data and health_data[8] == 'low' else '' }}>Low</option>
+                        <option value="high" {{ 'selected' if health_data and health_data[8] == 'high' else '' }}>High</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cholesterol">Cholesterol Level</label>
+                    <select id="cholesterol" name="cholesterol">
+                        <option value="normal" {{ 'selected' if health_data and health_data[9] == 'normal' else '' }}>Normal</option>
+                        <option value="low" {{ 'selected' if health_data and health_data[9] == 'low' else '' }}>Low</option>
+                        <option value="mid" {{ 'selected' if health_data and health_data[9] == 'mid' else '' }}>Mid</option>
+                        <option value="high" {{ 'selected' if health_data and health_data[9] == 'high' else '' }}>High</option>
+                    </select>
+                </div>
+            </div>
+            
+            <input type="hidden" name="gender" value="male">
+            <input type="hidden" name="activity_level" value="sedentary">
+            
+            <button type="submit">
+                <i class="ri-save-line"></i>
+                Update Health Data
+            </button>
+        </form>
+    </div>
+</body>
+</html>

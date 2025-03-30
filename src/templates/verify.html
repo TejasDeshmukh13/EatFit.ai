@@ -1,0 +1,140 @@
+<!-- templates/verify.html -->
+{% extends "base.html" %}
+
+{% block title %}Verify Nutrition Data{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Verify Nutrition Information</h1>
+    
+    {% if product_info %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3>Product Information</h3>
+            <p><strong>{{ product_info }}</strong></p>
+            <p><small>Data partially retrieved from Open Food Facts database</small></p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="image-preview card mb-4">
+                <div class="card-body">
+                    <h3>Uploaded Image</h3>
+                    <img src="{{ url_for('static', filename='uploads/' + image) }}"
+                        alt="Uploaded nutrition label"
+                        style="max-width: 100%; height: auto;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Extracted Nutrition Values</h3>
+                    <p><small>OCR Configuration #{{ config_number }} was used</small></p>
+                    
+                    <form method="POST" id="nutritionForm">
+                        <div class="alert alert-info">
+                            Please verify and correct the extracted values if needed.<br>
+                            All values should be per 100g/100ml as per Indian standards.
+                        </div>
+                        
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <div class="form-group mb-3">
+                            <label for="energy_kcal">Energy (kcal)</label>
+                            <input type="text" class="form-control" id="energy_kcal" name="energy_kcal" 
+                                value="{{ nutrition.energy_kcal|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="fat">Fat (g)</label>
+                            <input type="text" class="form-control" id="fat" name="fat" 
+                                value="{{ nutrition.fat|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="saturated_fat">Saturated Fat (g)</label>
+                            <input type="text" class="form-control" id="saturated_fat" name="saturated_fat" 
+                                value="{{ nutrition.saturated_fat|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="carbohydrates">Carbohydrates (g)</label>
+                            <input type="text" class="form-control" id="carbohydrates" name="carbohydrates" 
+                                value="{{ nutrition.carbohydrates|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="sugars">Sugars (g)</label>
+                            <input type="text" class="form-control" id="sugars" name="sugars" 
+                                value="{{ nutrition.sugars|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="fiber">Fiber (g)</label>
+                            <input type="text" class="form-control" id="fiber" name="fiber" 
+                                value="{{ nutrition.fiber|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="protein">Protein (g)</label>
+                            <input type="text" class="form-control" id="protein" name="protein" 
+                                value="{{ nutrition.protein|default('') }}">
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="salt">Salt (g)</label>
+                            <input type="text" class="form-control" id="salt" name="salt" 
+                                value="{{ nutrition.salt|default('') }}">
+                        </div>
+                        
+                        <div class="btn-group d-flex mt-4" role="group">
+                            <button type="submit" name="user_response" value="accept" class="btn btn-success flex-grow-1">Accept Values</button>
+                            <button type="submit" name="user_response" value="try_next" class="btn btn-primary flex-grow-1">Try New OCR Scan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('nutritionForm').addEventListener('submit', function(event) {
+        const form = event.target;
+        
+        // Check if at least one field has a value
+        const fields = ['energy_kcal', 'fat', 'saturated_fat', 'carbohydrates', 'sugars', 'fiber', 'protein', 'salt'];
+        let hasValue = false;
+        
+        for (const field of fields) {
+            const value = form[field].value.trim();
+            if (value) {
+                // Check for negative values
+                if (parseFloat(value.replace(',', '.')) < 0) {
+                    alert('Negative values are not allowed for nutrition information.');
+                    event.preventDefault();
+                    return;
+                }
+                
+                hasValue = true;
+            }
+        }
+        
+        // Only check for values if accepting the form (not if trying new OCR)
+        if (event.submitter.value === 'accept' && !hasValue) {
+            alert('Please enter at least some nutrition values before submitting.');
+            event.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

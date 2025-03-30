@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition Analysis{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="text-center mb-5">
+        <h1>Nutrition Analysis & Barcode Scanner</h1>
+        <p class="lead">Scan food product barcodes or upload nutrition label images to get detailed nutritional information</p>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center p-5">
+                    <i class="bi bi-upload" style="font-size: 4rem; color: #0d6efd;"></i>
+                    <h3 class="mt-4">Upload Product Image</h3>
+                    <p class="text-muted mb-4">Take a photo of a nutrition label and our OCR technology will extract the information</p>
+                    <a href="{{ url_for('product.upload_file') }}" class="btn btn-primary btn-lg">Upload Image</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body text-center p-5">
+                    <i class="bi bi-upc-scan" style="font-size: 4rem; color: #0d6efd;"></i>
+                    <h3 class="mt-4">Scan Barcode</h3>
+                    <p class="text-muted mb-4">Enter a product barcode and we'll fetch nutritional information from our database</p>
+                    <a href="{{ url_for('product.upload_file') }}" class="btn btn-primary btn-lg">Scan Barcode</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="demo-products mb-5">
+        <h2 class="text-center mb-4">Try with Demo Products</h2>
+        
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <img src="{{ url_for('static', filename='images/nutella.jpg') }}" 
+                             alt="Chocolate Spread"
+                             onerror="this.src='{{ url_for('static', filename='images/F1.png') }}'"
+                             class="img-fluid mb-3" style="max-height: 150px;">
+                        <h4>Chocolate Spread</h4>
+                        <p class="mb-0 text-muted">Nutri-Score: E</p>
+                        <p class="small text-muted">High in sugar and fat</p>
+                        <a href="{{ url_for('product.demo_product', demo_id='chocolate') }}" class="btn btn-outline-primary mt-3">View Analysis</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <img src="{{ url_for('static', filename='images/cereal.jpg') }}" 
+                             alt="Breakfast Cereal"
+                             onerror="this.src='{{ url_for('static', filename='images/diet.jpg') }}'"
+                             class="img-fluid mb-3" style="max-height: 150px;">
+                        <h4>Breakfast Cereal</h4>
+                        <p class="mb-0 text-muted">Nutri-Score: C</p>
+                        <p class="small text-muted">Moderate nutritional quality</p>
+                        <a href="{{ url_for('product.demo_product', demo_id='cereal') }}" class="btn btn-outline-primary mt-3">View Analysis</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <img src="{{ url_for('static', filename='images/yogurt.jpg') }}" 
+                             alt="Greek Yogurt"
+                             onerror="this.src='{{ url_for('static', filename='images/pack_fd_re.jpg') }}'"
+                             class="img-fluid mb-3" style="max-height: 150px;">
+                        <h4>Greek Yogurt</h4>
+                        <p class="mb-0 text-muted">Nutri-Score: A</p>
+                        <p class="small text-muted">High in protein, low in fat</p>
+                        <a href="{{ url_for('product.demo_product', demo_id='yogurt') }}" class="btn btn-outline-primary mt-3">View Analysis</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="features mb-5">
+        <h2 class="text-center mb-4">Our Features</h2>
+        
+        <div class="row row-cols-1 row-cols-md-4 g-4">
+            <div class="col">
+                <div class="card h-100 border-0 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 3rem; color: #0d6efd;">🏷️</div>
+                        <h4 class="mt-2">Nutri-Score</h4>
+                        <p class="text-muted">Get nutritional quality rating from A to E based on Indian guidelines</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="card h-100 border-0 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 3rem; color: #0d6efd;">🔍</div>
+                        <h4 class="mt-2">Food Processing</h4>
+                        <p class="text-muted">Understand how processed your food is with NOVA classification</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="card h-100 border-0 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 3rem; color: #0d6efd;">🎯</div>
+                        <h4 class="mt-2">Health Analysis</h4>
+                        <p class="text-muted">Get personalized health recommendations based on your profile</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="card h-100 border-0 bg-light">
+                    <div class="card-body text-center p-4">
+                        <div style="font-size: 3rem; color: #0d6efd;">⚡</div>
+                        <h4 class="mt-2">Quick Alternatives</h4>
+                        <p class="text-muted">Find healthier alternatives to your scanned products</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+{% endblock %} 

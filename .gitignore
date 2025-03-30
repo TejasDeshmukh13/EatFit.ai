@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Flask
+instance/
+.webassets-cache
+
+# Debug
+debug_images/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database
+*.sqlite3
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Original files before restructuring
+/app.py
+/Diet_plan.py
+/label_encoders.pkl
+/rf_breakfast.pkl
+/rf_lunch.pkl
+/rf_dinner.pkl
+/train_model.py
+/EATFIT_DIET.csv
+/setup_database.sql 

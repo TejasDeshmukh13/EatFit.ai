@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - Healthy Food Store</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='product-page.css') }}">
+    <link rel="stylesheet" href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="product-page-container">
+        <!-- Left Navigation -->
+        <nav class="side-nav">
+            <div class="nav-item">
+                <a href="{{ url_for('cart.index') }}">
+                    <i class="las la-home"></i> Home
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('cart.index') }}" class="shop-link">
+                    <i class="las la-shopping-bag"></i> SHOP
+                </a>
+            </div>
+        </nav>
+
+        {% block content %}{% endblock %}
+
+        <!-- Right Filters Section -->
+        <aside class="filters-section">
+            <div class="filter-group">
+                <h3>Sort By</h3>
+                <select id="sort-select">
+                    <option value="">Select Sorting</option>
+                    <option value="price-high-low">Price: High to Low</option>
+                    <option value="price-low-high">Price: Low to High</option>
+                    <option value="weight-high-low">Weight: High to Low</option>
+                    <option value="weight-low-high">Weight: Low to High</option>
+                </select>
+            </div>
+        </aside>
+    </div>
+
+    <script src="{{ url_for('static', filename='products.js') }}"></script>
+</body>
+</html> 

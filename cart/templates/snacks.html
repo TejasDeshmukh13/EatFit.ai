@@ -1,0 +1,15 @@
+{% extends "category_base.html" %}
+
+{% block title %}Snacks{% endblock %}
+
+{% block category_title %}Snacks{% endblock %}
+
+{% block content %}
+<div class="products-grid" id="products-container">
+    <!-- Products will be loaded via JavaScript -->
+</div>
+<!-- Hidden element to store product data -->
+<script id="products-data" type="application/json">
+    {{ products|tojson|safe }}
+</script>
+{% endblock %}

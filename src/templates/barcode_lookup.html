@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Barcode Lookup{% endblock %}
+{% block header_title %}Barcode Lookup{% endblock %}
+
+{% block extra_css %}
+<style>
+    .barcode-card {
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.4s ease;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.07);
+    }
+    
+    .barcode-header {
+        padding: 2rem;
+        border-radius: 20px 20px 0 0;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .barcode-form {
+        background-color: white;
+        border-radius: 0 0 20px 20px;
+        padding: 2rem;
+    }
+    
+    .scan-area {
+        border: 2px dashed #dee2e6;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border-radius: 10px;
+        text-align: center;
+        background-color: #f8f9fa;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #barcode-reader {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .instructions {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+    }
+    
+    .instruction-step {
+        display: flex;
+        margin-bottom: 1rem;
+    }
+    
+    .step-number {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 30px;
+        height: 30px;
+        background-color: #667eea;
+        color: white;
+        border-radius: 50%;
+        margin-right: 1rem;
+        font-weight: bold;
+    }
+    
+    .recent-products {
+        padding: 1.5rem;
+        background-color: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-top: 2rem;
+    }
+    
+    .product-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .product-item:last-child {
+        border-bottom: none;
+    }
+    
+    .product-image {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        margin-right: 1rem;
+        object-fit: cover;
+    }
+    
+    .product-score {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: auto;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .score-a { background-color: #1db954; }
+    .score-b { background-color: #92d050; }
+    .score-c { background-color: #ffcc01; }
+    .score-d { background-color: #ff9501; }
+    .score-e { background-color: #e63946; }
+    
+    .animated-scanner {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(to right, transparent, rgba(102, 126, 234, 0.8), transparent);
+        animation: scan 2s linear infinite;
+        display: none;
+    }
+    
+    @keyframes scan {
+        0% { top: 0; }
+        50% { top: calc(100% - 5px); }
+        100% { top: 0; }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="barcode-card animate-fade-in">
+    <div class="barcode-header">
+        <h1>Scan Product Barcode</h1>
+        <p class="mb-0">Get detailed nutrition information by scanning the barcode of your food products</p>
+    </div>
+    
+    <div class="barcode-form">
+        <div class="row">
+            <div class="col-lg-7 animate-fade-in delay-1">
+                <div class="scan-area" id="scan-area">
+                    <div class="animated-scanner" id="scanner"></div>
+                    <div id="barcode-reader"></div>
+                    <div id="scan-placeholder">
+                        <i class="bi bi-upc-scan fs-1 text-muted mb-3"></i>
+                        <h4>Ready to Scan</h4>
+                        <p class="text-muted">Use your device's camera to scan a product barcode</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-8 mb-3 mb-md-0">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="barcode-input" placeholder="Or enter barcode manually..." aria-label="Barcode number">
+                            <button class="btn btn-primary" type="button" id="search-barcode">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" id="start-scan">
+                            <i class="bi bi-camera-fill me-2"></i> Start Camera
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="instructions animate-fade-in delay-2">
+                    <h5 class="mb-3">How to scan a barcode</h5>
+                    
+                    <div class="instruction-step">
+                        <div class="step-number">1</div>
+                        <div>Click "Start Camera" to activate your device's camera</div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="step-number">2</div>
+                        <div>Point your camera at the product's barcode</div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="step-number">3</div>
+                        <div>Hold steady until the barcode is recognized</div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="step-number">4</div>
+                        <div>View detailed nutritional information and healthiness score</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-5 animate-fade-in delay-3">
+                <div class="recent-products">
+                    <h5 class="mb-3">Recently Scanned Products</h5>
+                    
+                    <div class="product-item">
+                        <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="product-image" alt="Product">
+                        <div>
+                            <h6 class="mb-1">Chocolate Spread</h6>
+                            <small class="text-muted">Scanned 2 hours ago</small>
+                        </div>
+                        <div class="product-score score-e">E</div>
+                    </div>
+                    
+                    <div class="product-item">
+                        <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="product-image" alt="Product">
+                        <div>
+                            <h6 class="mb-1">Greek Yogurt</h6>
+                            <small class="text-muted">Scanned 1 day ago</small>
+                        </div>
+                        <div class="product-score score-a">A</div>
+                    </div>
+                    
+                    <div class="product-item">
+                        <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="product-image" alt="Product">
+                        <div>
+                            <h6 class="mb-1">Breakfast Cereal</h6>
+                            <small class="text-muted">Scanned 2 days ago</small>
+                        </div>
+                        <div class="product-score score-c">C</div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('product.upload_file') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-camera-fill me-1"></i> Scan Product Label
+                        </a>
+                        <a href="{{ url_for('product.nutrition_landing') }}" class="btn btn-sm btn-outline-secondary ms-2">
+                            <i class="bi bi-grid me-1"></i> All Features
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-center d-none d-lg-block">
+                    <a href="{{ url_for('diet.diet_recommendation') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-stars me-2"></i> Get Diet Recommendations
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let html5QrCode;
+        const scanPlaceholder = document.getElementById('scan-placeholder');
+        const startScanButton = document.getElementById('start-scan');
+        const scanner = document.getElementById('scanner');
+        
+        // Initialize barcode scanner
+        function initScanner() {
+            html5QrCode = new Html5Qrcode("barcode-reader");
+            
+            const config = { 
+                fps: 10,
+                qrbox: { width: 250, height: 150 },
+                aspectRatio: 1.0
+            };
+            
+            // Start scanning
+            startScanButton.addEventListener('click', function() {
+                scanPlaceholder.style.display = 'none';
+                scanner.style.display = 'block';
+                startScanButton.innerHTML = '<i class="bi bi-stop-fill me-2"></i> Stop Camera';
+                startScanButton.classList.replace('btn-outline-primary', 'btn-outline-danger');
+                
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                ).catch(err => {
+                    console.error("Failed to start scanner:", err);
+                    alert("Unable to start the camera. Please check your camera permissions.");
+                    resetScanner();
+                });
+                
+                startScanButton.removeEventListener('click', initScanner);
+                startScanButton.addEventListener('click', stopScanner);
+            });
+        }
+        
+        // Handle successful scan
+        function onScanSuccess(decodedText, decodedResult) {
+            // Stop scanning
+            html5QrCode.stop().then(() => {
+                console.log("Barcode scanned:", decodedText);
+                scanner.style.display = 'none';
+                
+                // Show loading indicator
+                scanPlaceholder.style.display = 'block';
+                scanPlaceholder.innerHTML = `
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4>Looking up product...</h4>
+                    <p class="text-muted">Barcode: ${decodedText}</p>
+                `;
+                
+                // Simulate product lookup (in a real app, this would call the API)
+                setTimeout(() => {
+                    // Redirect to product details page
+                    // In a real app, this would be:
+                    // window.location.href = `/product/barcode/${decodedText}`;
+                    
+                    // For demo, redirect to one of our demo products
+                    window.location.href = "{{ url_for('product.demo_product', demo_id='chocolate_spread') }}";
+                }, 2000);
+            }).catch(err => {
+                console.error("Error stopping scanner:", err);
+            });
+        }
+        
+        // Handle scan failures
+        function onScanFailure(error) {
+            // This function will be called frequently, no need to do anything
+        }
+        
+        // Stop scanning
+        function stopScanner() {
+            html5QrCode.stop().then(() => {
+                resetScanner();
+            }).catch(err => {
+                console.error("Error stopping scanner:", err);
+            });
+        }
+        
+        // Reset scanner UI
+        function resetScanner() {
+            scanPlaceholder.style.display = 'block';
+            scanner.style.display = 'none';
+            startScanButton.innerHTML = '<i class="bi bi-camera-fill me-2"></i> Start Camera';
+            startScanButton.classList.replace('btn-outline-danger', 'btn-outline-primary');
+            startScanButton.removeEventListener('click', stopScanner);
+            startScanButton.addEventListener('click', initScanner);
+        }
+        
+        // Initialize scanner on page load
+        initScanner();
+        
+        // Handle manual barcode entry
+        document.getElementById('search-barcode').addEventListener('click', function() {
+            const barcodeInput = document.getElementById('barcode-input');
+            const barcode = barcodeInput.value.trim();
+            
+            if (barcode) {
+                // Show loading indicator
+                scanPlaceholder.style.display = 'block';
+                scanPlaceholder.innerHTML = `
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4>Looking up product...</h4>
+                    <p class="text-muted">Barcode: ${barcode}</p>
+                `;
+                
+                // Simulate product lookup (in a real app, this would call the API)
+                setTimeout(() => {
+                    // For demo, redirect to one of our demo products
+                    window.location.href = "{{ url_for('product.demo_product', demo_id='breakfast_cereal') }}";
+                }, 1500);
+            } else {
+                alert("Please enter a barcode number");
+            }
+        });
+    });
+</script>
+{% endblock %} 
