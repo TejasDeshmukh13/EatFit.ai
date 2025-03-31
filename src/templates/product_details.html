@@ -736,7 +736,7 @@
         <div class="nutrition-section animate-fade-in delay-4">
             <div class="section-header">
                 <i class="bi bi-clipboard2-pulse-fill"></i>
-                <span>Health Analysis</span>
+                <span>Nutritional Evaluation</span>
             </div>
             <div class="section-content">
                 {% if not is_logged_in %}
@@ -775,8 +775,15 @@
                         </h5>
                         <div class="alert alert-danger mb-0">
                             <ul class="mb-0 ps-4">
+                                {% set displayed_warnings = [] %}
                                 {% for warning in safety_review.warnings %}
-                                <li class="mb-2">{{ warning }}</li>
+                                    {% set nutrient = warning.split(' content ')[0] %}
+                                    {% set value = warning.split('(')[1].split('g')[0] %}
+                                    
+                                    {% if nutrient not in displayed_warnings %}
+                                        {% set _ = displayed_warnings.append(nutrient) %}
+                                        <li class="mb-2">{{ warning }}</li>
+                                    {% endif %}
                                 {% endfor %}
                             </ul>
                         </div>
@@ -843,7 +850,6 @@
                                                 {% set nutrient_name = warning.split(' content ')[0].replace('High ', '') %}
                                                 {% set value = warning.split('(')[1].split('g')[0] %}
                                                 {% set limit = warning.split('limit (')[1].split('g')[0] %}
-                                                {% set condition = warning.split('your ')[1] %}
                                                 
                                                 {% if nutrient_name|lower not in displayed_nutrients %}
                                                     {% set _ = displayed_nutrients.append(nutrient_name|lower) %}
@@ -894,20 +900,12 @@
                                         <div class="card card-body">
                                             <h6 class="mb-2">About These Guidelines</h6>
                                             <p class="small">These nutrient guidelines are personalized based on your health profile and age. They're derived from the Indian Dietary Guidelines and medical research.</p>
-                                            <p class="small mb-0">The recommended limits vary based on your specific health conditions:</p>
+                                            <p class="small mb-0">The recommended guidelines focus on:</p>
                                             <ul class="small">
-                                                {% if user_health.get('diabetes', False) %}
-                                                <li><strong>Diabetes:</strong> Lower limits for carbohydrates and sugars to help manage blood glucose levels.</li>
-                                                {% endif %}
-                                                {% if user_health.get('bp', False) %}
-                                                <li><strong>High Blood Pressure:</strong> Lower sodium/salt limits to help reduce blood pressure.</li>
-                                                {% endif %}
-                                                {% if user_health.get('cholesterol', False) %}
-                                                <li><strong>High Cholesterol:</strong> Lower limits for saturated fat and total fat to help manage cholesterol levels.</li>
-                                                {% endif %}
-                                                {% if user_health.get('bmi', 0) > 30 %}
-                                                <li><strong>BMI over 30:</strong> Special attention to calories and fat content for weight management.</li>
-                                                {% endif %}
+                                                <li><strong>Macronutrients:</strong> Appropriate levels of carbohydrates, proteins, and fats.</li>
+                                                <li><strong>Sugar:</strong> Limiting added sugars for overall health.</li>
+                                                <li><strong>Sodium/Salt:</strong> Appropriate intake for optimal health.</li>
+                                                <li><strong>Fiber:</strong> Adequate fiber for digestive health.</li>
                                             </ul>
                                         </div>
                                     </div>

@@ -217,7 +217,7 @@ def check_product_safety(nutrition_data, user_health):
     
     # Process exceeded limits as warnings
     for item in nutrient_analysis['exceeded_limits']:
-        warning_text = f"High {item['nutrient']} content ({item['value']}g) - Exceeds recommended limit ({item['limit']}g) for your {item['condition']}"
+        warning_text = f"High {item['nutrient']} content ({item['value']}g) - Exceeds recommended limit ({item['limit']}g)"
         warnings.append(warning_text)
     
     # Add safe nutrients
@@ -238,20 +238,10 @@ def check_product_safety(nutrition_data, user_health):
     
     # Update conclusion based on warnings
     if warnings:
-        conditions = []
-        if user_health.get('diabetes', False):
-            conditions.append("diabetes")
-        if user_health.get('bp', False):
-            conditions.append("high blood pressure")
-        if user_health.get('cholesterol', False):
-            conditions.append("high cholesterol")
-            
-        conditions_text = " and ".join(conditions)
-        
         if len(warnings) > 2:
-            conclusion = f"⚠️ Caution with this product. Given your {conditions_text}, some nutrients exceed recommended limits."
+            conclusion = f"⚠️ Caution with this product. Some nutrients exceed recommended health limits."
         else:
-            conclusion = f"⚠️ Consider limiting this product. Some nutrients may affect your {conditions_text}."
+            conclusion = f"⚠️ Consider limiting this product. Some nutrients exceed recommended limits."
     elif len(safe_nutrients) > 0:
         conclusion = "✅ This product contains beneficial nutrients that align well with your health profile."
     
