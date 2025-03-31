@@ -5,13 +5,12 @@ import io
 from utils.common import allowed_file
 from utils.image_processing import OCR_CONFIGS, extract_text
 from utils.nutrition import (
-    parse_nutrition, process_with_config, calculate_nutri_score, 
-    fetch_by_barcode, get_alternatives_by_category,
-    get_nova_score
+    parse_nutrition, process_with_config, calculate_nutri_score,
+    get_alternatives_by_category, merge_nutrition_data, get_nova_score
 )
 from utils.allergies import map_allergens_to_ingredients
 from utils.conclusion import check_product_safety
-from models.food_analysis import analyze_product_with_off, ProductAnalysis, get_product_from_off
+from models.food_analysis import get_product_from_off, analyze_product_with_off, ProductAnalysis
 import logging
 import json
 import requests
@@ -358,7 +357,6 @@ def product_details():
             
             # Get fresh data directly from OpenFoodFacts
             try:
-                from models.food_analysis import get_product_from_off
                 product = get_product_from_off(barcode)
                 
                 if product:

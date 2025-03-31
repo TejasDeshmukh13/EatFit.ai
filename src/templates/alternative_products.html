@@ -51,6 +51,12 @@
                                 {% else %}bg-danger{% endif %} p-2 rounded-pill">
                                 Nutri-Score: {{ alt.nutriscore_grade }}
                             </span>
+                            
+                            {% if alt.is_indian %}
+                            <span class="badge bg-primary ms-1 p-2 rounded-pill">
+                                <i class="bi bi-flag-fill me-1"></i> Indian Product
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -126,6 +132,18 @@
     }
     .scores .badge {
         font-size: 0.9rem;
+    }
+    
+    .badge.bg-primary {
+        background-color: #ff9933 !important; /* Saffron color from Indian flag */
+        color: #000;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .badge.bg-primary i {
+        color: #138808; /* Green color from Indian flag */
     }
 </style>
 {% endblock %}

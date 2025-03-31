@@ -6,64 +6,15 @@ import requests
 import json
 from utils.image_processing import extract_text
 import logging
+from models.food_analysis import get_product_from_off
 
 logger = logging.getLogger(__name__)
-
-def fetch_by_barcode(barcode):
-    """
-    Fetch nutrition data from Open Food Facts API using a barcode.
-    Uses the improved product fetching function from food_analysis module.
-    """
-    # Validate barcode format (should be numeric and typically 8, 12, or 13 digits)
-    if not barcode.isdigit():
-        return {'error': 'Invalid barcode format. Barcode should contain only numbers.'}
-        
-    try:
-        # Use the improved product fetcher
-        from models.food_analysis import get_product_from_off
-        
-        product = get_product_from_off(barcode)
-        
-        if not product:
-            return {'error': 'Product not found in database'}
-        
-        # Extract nutrition data
-        nutrients = product.get('nutriments', {})
-        
-        # Create a dictionary with the nutrition data we need
-        nutrition_data = {
-            'product_name': product.get('product_name', 'Unknown Product'),
-            'brand': product.get('brands', 'Unknown Brand'),
-            'energy_kcal': float(nutrients.get('energy-kcal_100g', 0)),
-            'fat': float(nutrients.get('fat_100g', 0)),
-            'saturated_fat': float(nutrients.get('saturated-fat_100g', 0)),
-            'carbohydrates': float(nutrients.get('carbohydrates_100g', 0)),
-            'sugars': float(nutrients.get('sugars_100g', 0)),
-            'fiber': float(nutrients.get('fiber_100g', 0)),
-            'protein': float(nutrients.get('proteins_100g', 0)),
-            'salt': float(nutrients.get('salt_100g', 0)),
-            'categories': product.get('categories', ''),
-            'image_url': product.get('image_url', ''),
-            
-            # Add ingredients information
-            'ingredients_text': product.get('ingredients_text', ''),
-            'additives_tags': product.get('additives_tags', []),
-            'ingredients_analysis_tags': product.get('ingredients_analysis_tags', []),
-            
-            # Add processing info if available
-            'nova_group': product.get('nova_group', 4),
-            'nova_score': product.get('nova_groups', 4),
-        }
-        
-        return nutrition_data
-        
-    except Exception as e:
-        return {'error': f'Error fetching data: {str(e)}'}
 
 def get_alternatives_by_category(barcode, current_grade):
     """
     Get alternative products with better nutri-scores from the same category
     """
+    search_url = "https://world.openfoodfacts.org/cgi/search.pl"
     try:
         # First, get the product details to find its category
         url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
@@ -107,9 +58,8 @@ def get_alternatives_by_category(barcode, current_grade):
         
         for category in categories:
             try:
-                # Search for alternatives
-                search_url = "https://world.openfoodfacts.org/cgi/search.pl"
-                params = {
+                # First, search specifically for Indian products in the same category
+                indian_params = {
                     'action': 'process',
                     'tagtype_0': 'categories',
                     'tag_contains_0': 'contains',
@@ -117,79 +67,255 @@ def get_alternatives_by_category(barcode, current_grade):
                     'tagtype_1': 'nutrition_grades',
                     'tag_contains_1': 'contains',
                     'tag_1': target_grades,
-                    'sort_by': 'unique_scans_n',
-                    'page_size': 10,
+                    'tagtype_2': 'countries',
+                    'tag_contains_2': 'contains',
+                    'tag_2': 'india',
+                    'sort_by': 'popularity_key',  # Sort by popularity to get more relevant products
+                    'page_size': 20,  # Increase page size to find more potential matches
                     'json': 1
                 }
                 
-                search_response = requests.get(search_url, params=params, timeout=15)
+                indian_response = requests.get(search_url, params=indian_params, timeout=15) # type: ignore
+                indian_alternatives = []
                 
-                if search_response.status_code != 200:
-                    continue
+                if indian_response.status_code == 200:
+                    indian_data = indian_response.json()
                     
-                search_data = search_response.json()
+                    # Process Indian alternatives
+                    for alt_product in indian_data.get('products', []):
+                        # Skip if it's the same product or missing key data
+                        if (alt_product.get('code') == barcode or
+                            not alt_product.get('product_name') or
+                            not alt_product.get('image_url') or
+                            not alt_product.get('nutriments')):
+                            continue
+                        
+                        # Calculate improvements over current product
+                        improvements = []
+                        
+                        # Compare Nutri-Score
+                        alt_score = alt_product.get('nutrition_grades', '').lower()
+                        if alt_score in target_grades and (not current_grade or alt_score < current_grade.lower()):
+                            improvements.append(f"Better Nutri-Score ({alt_score.upper()})")
+                        
+                        # Compare NOVA score
+                        alt_nova = alt_product.get('nova_group')
+                        current_nova = current_product['nova_group']
+                        if alt_nova and current_nova and alt_nova < current_nova:
+                            improvements.append("Less processed")
+                        
+                        # Compare key nutrients
+                        alt_nutrients = alt_product.get('nutriments', {})
+                        current_nutrients = current_product['nutrients']
+                        
+                        # Check if product types are similar (snack for snack, drink for drink, etc.)
+                        is_similar_product_type = False
+                        
+                        # Extract product types/categories from the categories field
+                        alt_categories = alt_product.get('categories_tags', [])
+                        current_categories = product.get('categories_tags', [])
+                        
+                        # Convert to simpler set of categories for comparison
+                        alt_category_set = set(alt_categories)
+                        current_category_set = set(current_categories)
+                        
+                        # If there's at least some category overlap, consider them similar
+                        common_categories = alt_category_set.intersection(current_category_set)
+                        is_similar_product_type = len(common_categories) > 0
+                        
+                        # Skip if product types are too different 
+                        if not is_similar_product_type:
+                            continue
+                        
+                        nutrient_comparisons = [
+                            ('sugars_100g', 'sugar', '<'),
+                            ('salt_100g', 'salt', '<'),
+                            ('fiber_100g', 'fiber', '>'),
+                            ('proteins_100g', 'protein', '>')
+                        ]
+                        
+                        for nutrient_key, nutrient_name, comparison in nutrient_comparisons:
+                            alt_value = alt_nutrients.get(nutrient_key, 0)
+                            current_value = current_nutrients.get(nutrient_key, 0)
+                            
+                            if current_value > 0:  # Only compare if current product has this nutrient
+                                if comparison == '<' and alt_value < current_value:
+                                    improvements.append(f"Lower in {nutrient_name}")
+                                elif comparison == '>' and alt_value > current_value:
+                                    improvements.append(f"Higher in {nutrient_name}")
+                        
+                        # Only add product if we found improvements
+                        if improvements:
+                            alternative = {
+                                'product_name': alt_product['product_name'],
+                                'brand': alt_product.get('brands', 'Unknown Brand'),
+                                'image_url': alt_product['image_url'],
+                                'nutriscore_grade': alt_score.upper(),
+                                'nova_group': alt_nova,
+                                'reason': "Made in India • " + " • ".join(improvements[:2]),  # Add Made in India as a benefit
+                                'is_indian': True
+                            }
+                            
+                            # Add to alternatives if not already present
+                            if not any(a['product_name'] == alternative['product_name'] for a in indian_alternatives):
+                                indian_alternatives.append(alternative)
+                        
+                        # Limit to top 6 Indian alternatives
+                        if len(indian_alternatives) >= 6:
+                            break
                 
-                for alt_product in search_data.get('products', []):
-                    # Skip if it's the same product or missing key data
-                    if (alt_product.get('code') == barcode or
-                        not alt_product.get('product_name') or
-                        not alt_product.get('image_url') or
-                        not alt_product.get('nutriments')):
-                        continue
+                # Calculate relevance scores for the alternatives
+                scored_alternatives = []
+                for alt in indian_alternatives:
+                    # Start with a base score
+                    relevance_score = 10
                     
-                    # Calculate improvements over current product
-                    improvements = []
+                    # Add points for Indian products
+                    relevance_score += 5  # Higher priority for Indian products
                     
-                    # Compare Nutri-Score
-                    alt_score = alt_product.get('nutrition_grades', '').lower()
-                    if alt_score in target_grades and (not current_grade or alt_score < current_grade.lower()):
-                        improvements.append(f"Better Nutri-Score ({alt_score.upper()})")
+                    # Add product to scored list
+                    scored_alternatives.append({
+                        'alternative': alt,
+                        'score': relevance_score
+                    })
+                
+                # Sort alternatives by relevance score (descending)
+                scored_alternatives.sort(key=lambda x: x['score'], reverse=True)
+                
+                # Extract just the alternatives from the scored list
+                indian_alternatives = [item['alternative'] for item in scored_alternatives]
+                
+                # If we found Indian alternatives, add them to the main list
+                if indian_alternatives:
+                    alternatives.extend(indian_alternatives)
                     
-                    # Compare NOVA score
-                    alt_nova = alt_product.get('nova_group')
-                    current_nova = current_product['nova_group']
-                    if alt_nova and current_nova and alt_nova < current_nova:
-                        improvements.append("Less processed")
+                # If we don't have enough alternatives from Indian products, search globally
+                if len(alternatives) < 6:
+                    # Now search for global products if we need more alternatives
+                    global_params = {
+                        'action': 'process',
+                        'tagtype_0': 'categories',
+                        'tag_contains_0': 'contains',
+                        'tag_0': category,
+                        'tagtype_1': 'nutrition_grades',
+                        'tag_contains_1': 'contains',
+                        'tag_1': target_grades,
+                        'sort_by': 'unique_scans_n',
+                        'page_size': 10,
+                        'json': 1
+                    }
                     
-                    # Compare key nutrients
-                    alt_nutrients = alt_product.get('nutriments', {})
-                    current_nutrients = current_product['nutrients']
+                    search_response = requests.get(search_url, params=global_params, timeout=15)
                     
-                    nutrient_comparisons = [
-                        ('sugars_100g', 'sugar', '<'),
-                        ('salt_100g', 'salt', '<'),
-                        ('fiber_100g', 'fiber', '>'),
-                        ('proteins_100g', 'protein', '>')
-                    ]
-                    
-                    for nutrient_key, nutrient_name, comparison in nutrient_comparisons:
-                        alt_value = alt_nutrients.get(nutrient_key, 0)
-                        current_value = current_nutrients.get(nutrient_key, 0)
+                    if search_response.status_code == 200:
+                        search_data = search_response.json()
+                        global_alternatives = []
                         
-                        if current_value > 0:  # Only compare if current product has this nutrient
-                            if comparison == '<' and alt_value < current_value:
-                                improvements.append(f"Lower in {nutrient_name}")
-                            elif comparison == '>' and alt_value > current_value:
-                                improvements.append(f"Higher in {nutrient_name}")
-                    
-                    # Only add product if we found improvements
-                    if improvements:
-                        alternative = {
-                            'product_name': alt_product['product_name'],
-                            'brand': alt_product.get('brands', 'Unknown Brand'),
-                            'image_url': alt_product['image_url'],
-                            'nutriscore_grade': alt_score.upper(),
-                            'nova_group': alt_nova,
-                            'reason': " • ".join(improvements[:3])  # Top 3 improvements
-                        }
+                        for alt_product in search_data.get('products', []):
+                            # Skip if it's the same product or missing key data
+                            if (alt_product.get('code') == barcode or
+                                not alt_product.get('product_name') or
+                                not alt_product.get('image_url') or
+                                not alt_product.get('nutriments')):
+                                continue
+                                
+                            # Skip if it's already in our alternatives
+                            if any(a['product_name'] == alt_product.get('product_name') for a in alternatives):
+                                continue
+                            
+                            # Calculate improvements over current product
+                            improvements = []
+                            
+                            # Compare Nutri-Score
+                            alt_score = alt_product.get('nutrition_grades', '').lower()
+                            if alt_score in target_grades and (not current_grade or alt_score < current_grade.lower()):
+                                improvements.append(f"Better Nutri-Score ({alt_score.upper()})")
+                            
+                            # Compare NOVA score
+                            alt_nova = alt_product.get('nova_group')
+                            current_nova = current_product['nova_group']
+                            if alt_nova and current_nova and alt_nova < current_nova:
+                                improvements.append("Less processed")
+                            
+                            # Compare key nutrients
+                            alt_nutrients = alt_product.get('nutriments', {})
+                            current_nutrients = current_product['nutrients']
+                            
+                            # Check if product types are similar (snack for snack, drink for drink, etc.)
+                            is_similar_product_type = False
+                            
+                            # Extract product types/categories from the categories field
+                            alt_categories = alt_product.get('categories_tags', [])
+                            current_categories = product.get('categories_tags', [])
+                            
+                            # Convert to simpler set of categories for comparison
+                            alt_category_set = set(alt_categories)
+                            current_category_set = set(current_categories)
+                            
+                            # If there's at least some category overlap, consider them similar
+                            common_categories = alt_category_set.intersection(current_category_set)
+                            is_similar_product_type = len(common_categories) > 0
+                            
+                            # Skip if product types are too different 
+                            if not is_similar_product_type:
+                                continue
+                            
+                            nutrient_comparisons = [
+                                ('sugars_100g', 'sugar', '<'),
+                                ('salt_100g', 'salt', '<'),
+                                ('fiber_100g', 'fiber', '>'),
+                                ('proteins_100g', 'protein', '>')
+                            ]
+                            
+                            for nutrient_key, nutrient_name, comparison in nutrient_comparisons:
+                                alt_value = alt_nutrients.get(nutrient_key, 0)
+                                current_value = current_nutrients.get(nutrient_key, 0)
+                                
+                                if current_value > 0:  # Only compare if current product has this nutrient
+                                    if comparison == '<' and alt_value < current_value:
+                                        improvements.append(f"Lower in {nutrient_name}")
+                                    elif comparison == '>' and alt_value > current_value:
+                                        improvements.append(f"Higher in {nutrient_name}")
+                            
+                            # Only add product if we found improvements
+                            if improvements:
+                                alternative = {
+                                    'product_name': alt_product['product_name'],
+                                    'brand': alt_product.get('brands', 'Unknown Brand'),
+                                    'image_url': alt_product['image_url'],
+                                    'nutriscore_grade': alt_score.upper(),
+                                    'nova_group': alt_nova,
+                                    'reason': " • ".join(improvements[:3]),  # Top 3 improvements
+                                    'is_indian': False
+                                }
+                                
+                                # Add to global alternatives
+                                global_alternatives.append(alternative)
+                            
+                            # Limit to top 6 global alternatives
+                            if len(global_alternatives) >= 6:
+                                break
                         
-                        # Add to alternatives if not already present
-                        if not any(a['product_name'] == alternative['product_name'] for a in alternatives):
-                            alternatives.append(alternative)
-                    
-                    # Limit to top 6 alternatives
-                    if len(alternatives) >= 6:
-                        break
+                        # Calculate relevance scores for global alternatives
+                        scored_global_alternatives = []
+                        for alt in global_alternatives:
+                            # Start with a base score
+                            relevance_score = 5  # Lower base score for non-Indian products
+                            
+                            # Add product to scored list
+                            scored_global_alternatives.append({
+                                'alternative': alt,
+                                'score': relevance_score
+                            })
+                        
+                        # Sort alternatives by relevance score (descending)
+                        scored_global_alternatives.sort(key=lambda x: x['score'], reverse=True)
+                        
+                        # Extract just the alternatives from the scored list
+                        global_alternatives = [item['alternative'] for item in scored_global_alternatives]
+                        
+                        # Add global alternatives to the main list (will be after Indian ones)
+                        alternatives.extend(global_alternatives)
                 
                 if len(alternatives) >= 6:
                     break
@@ -198,7 +324,13 @@ def get_alternatives_by_category(barcode, current_grade):
                 logger.error(f"Error searching category {category}: {str(e)}")
                 continue
         
-        return alternatives[:6]  # Return top 6 alternatives
+        # Make sure Indian products are always first, followed by global products
+        indian_products = [alt for alt in alternatives if alt.get('is_indian', False)]
+        non_indian_products = [alt for alt in alternatives if not alt.get('is_indian', False)]
+        
+        # Return top 6 alternatives, with Indian products prioritized
+        sorted_alternatives = indian_products + non_indian_products
+        return sorted_alternatives[:6]
             
     except Exception as e:
         logger.error(f"Error finding alternatives: {str(e)}")
@@ -320,8 +452,35 @@ def process_with_config(image_path, config_idx, barcode=None):
     try:
         # Try to get data from API if barcode is provided
         if barcode:
-            api_data = fetch_by_barcode(barcode)
-            if 'error' not in api_data:
+            # Get product data from the OpenFoodFacts API
+            product = get_product_from_off(barcode)
+            
+            # Process the product data if found
+            if product:
+                # Extract nutrition data
+                nutrients = product.get('nutriments', {})
+                
+                # Create nutrition data dictionary
+                api_data = {
+                    'product_name': product.get('product_name', 'Unknown Product'),
+                    'brand': product.get('brands', 'Unknown Brand'),
+                    'energy_kcal': float(nutrients.get('energy-kcal_100g', 0)),
+                    'fat': float(nutrients.get('fat_100g', 0)),
+                    'saturated_fat': float(nutrients.get('saturated-fat_100g', 0)),
+                    'carbohydrates': float(nutrients.get('carbohydrates_100g', 0)),
+                    'sugars': float(nutrients.get('sugars_100g', 0)),
+                    'fiber': float(nutrients.get('fiber_100g', 0)),
+                    'protein': float(nutrients.get('proteins_100g', 0)),
+                    'salt': float(nutrients.get('salt_100g', 0)),
+                    'categories': product.get('categories', ''),
+                    'image_url': product.get('image_url', ''),
+                    'ingredients_text': product.get('ingredients_text', ''),
+                    'additives_tags': product.get('additives_tags', []),
+                    'ingredients_analysis_tags': product.get('ingredients_analysis_tags', []),
+                    'nova_group': product.get('nova_group', 4),
+                    'nova_score': product.get('nova_groups', 4),
+                }
+                
                 nutrition_data = api_data.copy()
                 
                 # Use official scores from API if available
@@ -336,6 +495,9 @@ def process_with_config(image_path, config_idx, barcode=None):
                         'nova_explanation': nova_score_details['nova_explanation'],
                         'markers_explanation': nova_score_details['markers_explanation']
                     }
+            else:
+                # If product not found, set an error
+                api_data = {'error': 'Product not found in database'}
         
         # Extract data from image using OCR
         ocr_data = extract_text(image_path)
