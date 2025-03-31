@@ -449,9 +449,15 @@
                                 <div class="nutrient-value">{{ nutrition.get('fat_100g', 0) }}g</div>
                             </div>
                             <div class="nutrient-bar">
-                                <div class="nutrient-fill nutrient-high" style="width: {{ (nutrition.get('fat_100g', 0) / 70 * 100)|round(1) }}%;"></div>
+                                <div class="nutrient-fill {% if nutrition.get('fat_100g', 0) > 20 %}nutrient-high{% elif nutrition.get('fat_100g', 0) > 10 %}nutrient-medium{% else %}nutrient-low{% endif %}" style="width: {{ (nutrition.get('fat_100g', 0) / 70 * 100)|round(1) }}%;"></div>
                             </div>
-                            <small class="text-danger">High quantity</small>
+                            {% if nutrition.get('fat_100g', 0) > 20 %}
+                                <small class="text-danger">High quantity</small>
+                            {% elif nutrition.get('fat_100g', 0) > 10 %}
+                                <small class="text-warning">Medium quantity</small>
+                            {% else %}
+                                <small class="text-success">Low quantity</small>
+                            {% endif %}
                         </div>
                         
                         <div class="nutrient-item">
@@ -460,9 +466,15 @@
                                 <div class="nutrient-value">{{ nutrition.get('saturated-fat_100g', 0) }}g</div>
                             </div>
                             <div class="nutrient-bar">
-                                <div class="nutrient-fill nutrient-high" style="width: {{ (nutrition.get('saturated-fat_100g', 0) / 20 * 100)|round(1) }}%;"></div>
+                                <div class="nutrient-fill {% if nutrition.get('saturated-fat_100g', 0) > 5 %}nutrient-high{% elif nutrition.get('saturated-fat_100g', 0) > 2.5 %}nutrient-medium{% else %}nutrient-low{% endif %}" style="width: {{ (nutrition.get('saturated-fat_100g', 0) / 20 * 100)|round(1) }}%;"></div>
                             </div>
-                            <small class="text-danger">High quantity</small>
+                            {% if nutrition.get('saturated-fat_100g', 0) > 5 %}
+                                <small class="text-danger">High quantity</small>
+                            {% elif nutrition.get('saturated-fat_100g', 0) > 2.5 %}
+                                <small class="text-warning">Medium quantity</small>
+                            {% else %}
+                                <small class="text-success">Low quantity</small>
+                            {% endif %}
                         </div>
                         
                         <div class="nutrient-item">
@@ -471,9 +483,15 @@
                                 <div class="nutrient-value">{{ nutrition.get('sugars_100g', 0) }}g</div>
                             </div>
                             <div class="nutrient-bar">
-                                <div class="nutrient-fill nutrient-high" style="width: {{ (nutrition.get('sugars_100g', 0) / 90 * 100)|round(1) }}%;"></div>
+                                <div class="nutrient-fill {% if nutrition.get('sugars_100g', 0) > 10 %}nutrient-high{% elif nutrition.get('sugars_100g', 0) > 5 %}nutrient-medium{% else %}nutrient-low{% endif %}" style="width: {{ (nutrition.get('sugars_100g', 0) / 90 * 100)|round(1) }}%;"></div>
                             </div>
-                            <small class="text-danger">High quantity</small>
+                            {% if nutrition.get('sugars_100g', 0) > 10 %}
+                                <small class="text-danger">High quantity</small>
+                            {% elif nutrition.get('sugars_100g', 0) > 5 %}
+                                <small class="text-warning">Medium quantity</small>
+                            {% else %}
+                                <small class="text-success">Low quantity</small>
+                            {% endif %}
                         </div>
                         
                         <div class="nutrient-item">
@@ -482,9 +500,15 @@
                                 <div class="nutrient-value">{{ nutrition.get('salt_100g', 0) }}g</div>
                             </div>
                             <div class="nutrient-bar">
-                                <div class="nutrient-fill nutrient-low" style="width: {{ (nutrition.get('salt_100g', 0) / 6 * 100)|round(1) }}%;"></div>
+                                <div class="nutrient-fill {% if nutrition.get('salt_100g', 0) > 1.5 %}nutrient-high{% elif nutrition.get('salt_100g', 0) > 0.8 %}nutrient-medium{% else %}nutrient-low{% endif %}" style="width: {{ (nutrition.get('salt_100g', 0) / 6 * 100)|round(1) }}%;"></div>
                             </div>
-                            <small class="text-success">Low quantity</small>
+                            {% if nutrition.get('salt_100g', 0) > 1.5 %}
+                                <small class="text-danger">High quantity</small>
+                            {% elif nutrition.get('salt_100g', 0) > 0.8 %}
+                                <small class="text-warning">Medium quantity</small>
+                            {% else %}
+                                <small class="text-success">Low quantity</small>
+                            {% endif %}
                         </div>
                         
                         <div class="text-center mt-4">
@@ -777,11 +801,11 @@
                             <ul class="mb-0 ps-4">
                                 {% set displayed_warnings = [] %}
                                 {% for warning in safety_review.warnings %}
-                                    {% set nutrient = warning.split(' content ')[0] %}
-                                    {% set value = warning.split('(')[1].split('g')[0] %}
+                                    {% set nutrient_name = warning.split(' content')[0].replace('High ', '').replace('Contains ', '') %}
+                                    {% set nutrient_key = nutrient_name.lower().replace(' ', '_') %}
                                     
-                                    {% if nutrient not in displayed_warnings %}
-                                        {% set _ = displayed_warnings.append(nutrient) %}
+                                    {% if nutrient_key not in displayed_warnings %}
+                                        {% set _ = displayed_warnings.append(nutrient_key) %}
                                         <li class="mb-2">{{ warning }}</li>
                                     {% endif %}
                                 {% endfor %}
@@ -835,14 +859,32 @@
                                         
                                         {# Display warnings first #}
                                         {% for warning in safety_review.warnings %}
-                                            {% set nutrient_name = warning.split(' content')[0].replace('High ', '') %}
+                                            {% set nutrient_name = warning.split(' content')[0].replace('High ', '').replace('Contains ', '') %}
                                             {% set nutrient_name_lower = nutrient_name.lower() %}
+                                            {% set nutrient_key = nutrient_name_lower.replace(' ', '_') %}
                                             
-                                            {% if nutrient_name_lower not in displayed_nutrients %}
-                                                {% set displayed_nutrients = displayed_nutrients + [nutrient_name_lower] %}
+                                            {% if nutrient_key not in displayed_nutrients %}
+                                                {% set displayed_nutrients = displayed_nutrients + [nutrient_key] %}
                                                 
-                                                {% set value = warning.split('(')[1].split('g')[0] %}
-                                                {% set limit = warning.split('limit (')[1].split('g')[0] %}
+                                                {% if 'Should be avoided' in warning %}
+                                                    {% set value = warning.split('(')[1].split(')')[0] %}
+                                                    {% set limit = "0" %}
+                                                {% else %}
+                                                    {% set value = warning.split('(')[1].split(')')[0] %}
+                                                    {% set limit = warning.split('limit (')[1].split(')')[0] %}
+                                                {% endif %}
+                                                
+                                                {# Determine unit from the value #}
+                                                {% set unit = "g" %}  {# Default unit #}
+                                                {% if "mg" in value %}
+                                                    {% set unit = "mg" %}
+                                                    {% set value = value.replace("mg", "") %}
+                                                {% elif "μg" in value %}
+                                                    {% set unit = "μg" %}
+                                                    {% set value = value.replace("μg", "") %}
+                                                {% elif "g" in value %}
+                                                    {% set value = value.replace("g", "") %}
+                                                {% endif %}
                                                 
                                                 {# Get the actual value from the detailed nutrition info #}
                                                 {% set actual_value = value %}
@@ -874,23 +916,45 @@
                                                 
                                                 <tr class="table-warning">
                                                     <td><strong>{{ nutrient_name }}</strong></td>
-                                                    <td>{{ actual_value }}g</td>
-                                                    <td>{{ limit }}g</td>
-                                                    <td><span class="badge bg-warning text-dark">Exceeds Limit</span></td>
+                                                    <td>{{ actual_value }}{{ unit }}</td>
+                                                    {% if 'Should be avoided' in warning %}
+                                                        <td>Should be avoided</td>
+                                                        <td><span class="badge bg-danger">Avoid</span></td>
+                                                    {% else %}
+                                                        <td>{{ limit }}</td>
+                                                        <td><span class="badge bg-warning text-dark">Exceeds Limit</span></td>
+                                                    {% endif %}
                                                 </tr>
                                             {% endif %}
                                         {% endfor %}
                                         
                                         {# Display safe nutrients #}
                                         {% for nutrient in safety_review.safe_nutrients %}
-                                            {% if 'intake of ' in nutrient %}
-                                                {% set nutrient_name = nutrient.split('intake of ')[1].split(' (')[0] %}
+                                            {% if 'intake of ' in nutrient or 'level of ' in nutrient %}
+                                                {% if 'intake of ' in nutrient %}
+                                                    {% set nutrient_name = nutrient.split('intake of ')[1].split(' (')[0] %}
+                                                {% else %}
+                                                    {% set nutrient_name = nutrient.split('level of ')[1].split(' (')[0] %}
+                                                {% endif %}
                                                 {% set nutrient_name_lower = nutrient_name.lower() %}
+                                                {% set nutrient_key = nutrient_name_lower.replace(' ', '_') %}
                                                 
-                                                {% if nutrient_name_lower not in displayed_nutrients %}
-                                                    {% set displayed_nutrients = displayed_nutrients + [nutrient_name_lower] %}
+                                                {% if nutrient_key not in displayed_nutrients %}
+                                                    {% set displayed_nutrients = displayed_nutrients + [nutrient_key] %}
                                                     
-                                                    {% set value = nutrient.split('(')[1].split('g')[0] %}
+                                                    {% set value = nutrient.split('(')[1].split(')')[0] %}
+                                                    
+                                                    {# Determine unit from the value #}
+                                                    {% set unit = "g" %}  {# Default unit #}
+                                                    {% if "mg" in value %}
+                                                        {% set unit = "mg" %}
+                                                        {% set value = value.replace("mg", "") %}
+                                                    {% elif "μg" in value %}
+                                                        {% set unit = "μg" %}
+                                                        {% set value = value.replace("μg", "") %}
+                                                    {% elif "g" in value %}
+                                                        {% set value = value.replace("g", "") %}
+                                                    {% endif %}
                                                     
                                                     {# Get the actual value from the detailed nutrition info #}
                                                     {% set actual_value = value %}
@@ -923,7 +987,7 @@
                                                     {% if actual_value|float > 0 %}
                                                         <tr class="table-success">
                                                             <td><strong>{{ nutrient_name }}</strong></td>
-                                                            <td>{{ actual_value }}g</td>
+                                                            <td>{{ actual_value }}{{ unit }}</td>
                                                             <td>Good intake</td>
                                                             <td><span class="badge bg-success">✓ Beneficial</span></td>
                                                         </tr>

@@ -558,21 +558,34 @@ def alternative_products():
         if isinstance(nutrition_data, dict):
             current_score = nutrition_data.get('nutriscore_grade', 'C')
         
-        alternatives = []
+        # Get barcode and product name
         barcode = session.get('barcode')
+        product_name = session.get('product_name', 'Current Product')
+        
+        logger.info(f"Finding alternatives for product: {product_name}, barcode: {barcode}, score: {current_score}")
+        
+        alternatives = []
         
         if barcode:
             try:
                 # Get alternatives from the same category with better scores
+                logger.info("Calling get_alternatives_by_category function")
                 category_alternatives = get_alternatives_by_category(barcode, current_score)
+                
+                logger.info(f"Received {len(category_alternatives) if category_alternatives else 0} alternatives from search")
                 
                 if category_alternatives and isinstance(category_alternatives, list):
                     alternatives.extend(category_alternatives)
             except Exception as e:
                 logger.error(f"Error getting category alternatives: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
+        else:
+            logger.warning("No barcode available, skipping alternatives search")
         
         # If no alternatives found or error occurred, provide healthy generic alternatives
         if not alternatives:
+            logger.info("No alternatives found from API, using generic alternatives")
             alternatives = [
                 {
                     'product_name': 'Fresh Fruit Bowl',
@@ -597,18 +610,18 @@ def alternative_products():
                 }
             ]
         
+        logger.info(f"Rendering template with {len(alternatives)} alternatives")
+        
         return render_template(
             "alternative_products.html", 
             alternatives=alternatives,
-            current_product=session.get('product_name', 'Current Product')
+            current_product=product_name
         )
         
     except Exception as e:
         logger.error(f"Error finding alternatives: {str(e)}")
         flash("An error occurred while finding alternatives. Please try again.", "error")
         return redirect(url_for('product.product_details'))
-
-
 
 @product_bp.route('/nutrition')
 def nutrition_landing():

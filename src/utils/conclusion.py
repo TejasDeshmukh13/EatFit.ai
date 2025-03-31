@@ -82,20 +82,62 @@ def check_nutrient_limits(nutrition_data, user_health):
     # Get age group column
     age_column = get_age_column(user_health.get('age', 30))
     
-    # Standardize nutrition data keys to match dataset
-    nutrient_mapping = {
+    # Build nutrient mapping dynamically from the dataset
+    # First, get all unique nutrients from the dataset
+    all_nutrients = df_nutrients['Nutrient/chemicals to avoid'].dropna().unique()
+    
+    # Create a base mapping for common nutrients with known keys
+    base_mapping = {
         'carbohydrates': ['carbohydrates_100g', 'carbohydrates'],
         'sugar': ['sugars_100g', 'sugars'],
         'saturated_fat': ['saturated-fat_100g', 'saturated_fat'],
-        'trans_fat': ['trans-fat_100g', 'trans_fat'],
         'sodium': ['sodium_100g', 'sodium'],
         'salt': ['salt_100g', 'salt'],
         'cholesterol': ['cholesterol_100g', 'cholesterol'],
         'fiber': ['fiber_100g', 'fiber'],
         'protein': ['proteins_100g', 'protein'],
         'fat': ['fat_100g', 'fat'],
-        'energy_kcal': ['energy-kcal_100g', 'energy-kcal', 'energy_kcal']
+        'energy_kcal': ['energy-kcal_100g', 'energy-kcal', 'energy_kcal'],
     }
+    
+    # Now build the complete mapping by including all nutrients from the dataset
+    nutrient_mapping = base_mapping.copy()
+    
+    # Map common formats for nutrient keys in API data
+    for nutrient in all_nutrients:
+        nutrient_key = nutrient.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
+        
+        # Skip if already in base mapping or if it's trans fat (which we want to exclude)
+        if nutrient_key in base_mapping or 'trans' in nutrient_key or 'trans' in nutrient.lower():
+            continue
+            
+        # Create possible variations for this nutrient's keys
+        variants = [
+            f"{nutrient_key}_100g",
+            nutrient_key,
+            nutrient_key.replace('_', '-'),
+            nutrient.lower()
+        ]
+        
+        # Special handling for specific nutrient types
+        if "vitamin" in nutrient_key:
+            vitamin_name = nutrient_key.replace('vitamin_', '')
+            variants.extend([
+                f"vitamin-{vitamin_name}_100g",
+                f"vitamin_{vitamin_name}",
+                f"vitamin-{vitamin_name}"
+            ])
+        elif "omega" in nutrient_key:
+            omega_number = nutrient_key.replace('omega_', '')
+            variants.extend([
+                f"omega-{omega_number}-fat_100g",
+                f"omega_{omega_number}",
+                f"omega-{omega_number}"
+            ])
+        
+        # Add to mapping if not already present
+        if nutrient_key not in nutrient_mapping:
+            nutrient_mapping[nutrient_key] = variants
     
     # Extract nutrient values from product data
     product_nutrients = {}
@@ -118,6 +160,7 @@ def check_nutrient_limits(nutrition_data, user_health):
     
     # For each condition, check nutrient limits
     analyzed_nutrients = set()
+    processed_nutrients = set()  # Track which nutrients we've already processed
     
     for condition in conditions:
         condition_df = df_nutrients[df_nutrients['TYPE'] == condition]
@@ -132,17 +175,39 @@ def check_nutrient_limits(nutrition_data, user_health):
             limit_value = row[age_column]
             strict_avoid = row['Strictly Avoid?'].lower() if not pd.isna(row['Strictly Avoid?']) else "no"
             
+            # Generate a standardized key for this nutrient
+            nutrient_std_key = nutrient.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
+            
             # Skip rows that don't match our nutrient keys
             nutrient_key = None
-            for key in nutrient_mapping.keys():
-                if key.lower() in nutrient.lower() or nutrient.lower() in key.lower():
+            
+            # Try exact match first
+            for key in nutrient_mapping:
+                # Exact match check
+                if key == nutrient_std_key:
+                    nutrient_key = key
+                    break
+                    
+                # Check for partial matches with special handling
+                is_partial_match = (
+                    (nutrient in key or key in nutrient) and 
+                    # Prevent confusion between similar nutrients
+                    not (key == 'fat' and ('trans' in nutrient or 'saturated' in nutrient)) and
+                    not (key == 'trans_fat' and nutrient == 'fat') and
+                    not (key == 'saturated_fat' and nutrient == 'fat') and
+                    not (key == 'sugar' and 'sweetener' in nutrient) and
+                    not (key == 'artificial_sweeteners' and nutrient == 'sugar')
+                )
+                
+                if is_partial_match:
                     nutrient_key = key
                     break
             
-            if not nutrient_key:
+            if not nutrient_key or nutrient in processed_nutrients:
                 continue
                 
             analyzed_nutrients.add(nutrient_key)
+            processed_nutrients.add(nutrient)  # Mark as processed to avoid duplicates
             
             # Extract numeric value and comparison operator from limit
             numeric_match = re.search(r'([≤≥<>])\s*(\d+\.?\d*)', str(limit_value))
@@ -161,10 +226,26 @@ def check_nutrient_limits(nutrition_data, user_health):
                         'condition': condition,
                         'recommendation': strict_avoid
                     })
+                elif operator in ['≤', '<'] and product_value <= limit_num and product_value > 0:
+                    # For nutrients that should be lower (like sugar, salt)
+                    # Include them as safe if they're below the limit
+                    safe_nutrients.append({
+                        'nutrient': nutrient,
+                        'value': product_value,
+                        'recommendation': f"Good intake of {nutrient} ({product_value}g)"
+                    })
                 elif operator in ['≥', '>'] and product_value < limit_num:
                     if "no" in strict_avoid.lower() and product_value > 0:
                         # For nutrients that should be higher (like fiber, protein)
                         # Only include if the value is greater than 0
+                        safe_nutrients.append({
+                            'nutrient': nutrient,
+                            'value': product_value,
+                            'recommendation': f"Good intake of {nutrient} ({product_value}g)"
+                        })
+                elif operator in ['≥', '>'] and product_value >= limit_num:
+                    # Nutrient is at or above the recommended minimum
+                    if product_value > 0:  # Only include if the value is greater than 0
                         safe_nutrients.append({
                             'nutrient': nutrient,
                             'value': product_value,
@@ -178,13 +259,22 @@ def check_nutrient_limits(nutrition_data, user_health):
                             'value': product_value,
                             'recommendation': f"Acceptable level of {nutrient} ({product_value}g)"
                         })
+            elif "avoid" in str(limit_value).lower() and product_value > 0:
+                # For nutrients that should be avoided entirely
+                exceeded_limits.append({
+                    'nutrient': nutrient,
+                    'value': product_value,
+                    'limit': 0,
+                    'condition': condition,
+                    'recommendation': "Avoid"
+                })
     
     # Find nutrients that weren't analyzed
-    for nutrient in nutrient_mapping.keys():
-        if nutrient not in analyzed_nutrients and product_nutrients.get(nutrient, 0) > 0:
+    for nutrient, value in product_nutrients.items():
+        if nutrient not in analyzed_nutrients and value > 0:
             not_analyzed.append({
-                'nutrient': nutrient,
-                'value': product_nutrients[nutrient]
+                'nutrient': nutrient.replace('_', ' '),
+                'value': value
             })
     
     return {
@@ -217,6 +307,10 @@ def check_product_safety(nutrition_data, user_health):
     
     # Process exceeded limits as warnings
     for item in nutrient_analysis['exceeded_limits']:
+        # Skip trans fat
+        if 'trans' in item['nutrient'].lower():
+            continue
+            
         # Ensure we have accurate values, especially for saturated fat
         nutrient_value = item['value']
         
@@ -233,13 +327,51 @@ def check_product_safety(nutrition_data, user_health):
                         nutrient_value = float(nutrition_data[key])
                         break
         
-        warning_text = f"High {item['nutrient']} content ({nutrient_value}g) - Exceeds recommended limit ({item['limit']}g)"
+        # Determine the appropriate unit based on the nutrient
+        unit = "g"
+        if "caffeine" in item['nutrient'].lower():
+            unit = "mg"
+        elif any(vitamin in item['nutrient'].lower() for vitamin in ["vitamin", "folate", "folic"]):
+            unit = "μg"
+        elif any(mineral in item['nutrient'].lower() for mineral in ["iron", "zinc", "selenium", "iodine", "magnesium", "calcium"]):
+            unit = "mg"
+        elif "glycemic" in item['nutrient'].lower():
+            unit = ""  # No unit for glycemic index
+        
+        # Different message format for "Avoid" nutrients
+        if item.get('recommendation') == "Avoid" or item.get('limit') == 0:
+            warning_text = f"Contains {item['nutrient']} ({nutrient_value}{unit}) - Should be avoided"
+        else:
+            warning_text = f"High {item['nutrient']} content ({nutrient_value}{unit}) - Exceeds recommended limit ({item['limit']}{unit})"
+        
         warnings.append(warning_text)
     
     # Add safe nutrients
     for item in nutrient_analysis['safe_nutrients']:
-        if 'good' in item['recommendation'].lower():
-            safe_nutrients.append(item['recommendation'])
+        # Skip trans fat
+        if 'trans' in item['nutrient'].lower():
+            continue
+            
+        if 'good' in item['recommendation'].lower() or 'acceptable' in item['recommendation'].lower():
+            # Determine the appropriate unit based on the nutrient
+            unit = "g"
+            if "caffeine" in item['nutrient'].lower():
+                unit = "mg"
+            elif any(vitamin in item['nutrient'].lower() for vitamin in ["vitamin", "folate", "folic"]):
+                unit = "μg"
+            elif any(mineral in item['nutrient'].lower() for mineral in ["iron", "zinc", "selenium", "iodine", "magnesium", "calcium"]):
+                unit = "mg"
+            elif "glycemic" in item['nutrient'].lower():
+                unit = ""  # No unit for glycemic index
+            
+            # Update the recommendation text with the correct unit
+            if "{" in item['recommendation'] and "}" in item['recommendation']:
+                # Replace the existing unit in the recommendation
+                recommendation = item['recommendation'].replace("g)", f"{unit})")
+            else:
+                recommendation = item['recommendation']
+            
+            safe_nutrients.append(recommendation)
     
     # Ensure each unique nutrient is only listed once in safe_nutrients
     unique_safe_nutrients = []
