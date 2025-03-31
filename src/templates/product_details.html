@@ -809,107 +809,130 @@
                     </div>
                     {% endif %}
                     
-                    <!-- Nutrient Guidelines Based on Health Profile -->
-                    <div class="nutrient-guidelines">
-                        <h5 class="mb-3 d-flex align-items-center">
-                            <i class="bi bi-clipboard-data-fill text-primary me-2 fs-4"></i>
-                            <span>Recommended Nutrient Guidelines</span>
-                        </h5>
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <p class="text-muted small mb-2">
-                                    Based on your health profile, these are the recommended limits for your nutrients. The values 
-                                    below show how this product compares to those limits.
-                                </p>
-                                <!-- Nutrient Guidelines Table -->
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-striped table-hover">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Nutrient</th>
-                                                <th>Amount</th>
-                                                <th>Recommended Limit</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <!-- Each row will be populated from the nutrient analysis data -->
-                                            {% set nutrients = {
-                                                'carbohydrates': nutrition.get('carbohydrates_100g', nutrition.get('carbohydrates', 0)),
-                                                'sugars': nutrition.get('sugars_100g', nutrition.get('sugars', 0)),
-                                                'fat': nutrition.get('fat_100g', nutrition.get('fat', 0)),
-                                                'saturated_fat': nutrition.get('saturated-fat_100g', nutrition.get('saturated_fat', 0)),
-                                                'salt': nutrition.get('salt_100g', nutrition.get('salt', 0)),
-                                                'fiber': nutrition.get('fiber_100g', nutrition.get('fiber', 0)),
-                                                'protein': nutrition.get('proteins_100g', nutrition.get('protein', 0))
-                                            } %}
+                    <!-- Recommended Nutrient Guidelines Table -->
+                    <div class="card mt-4" id="recommendations">
+                        <div class="card-header">
+                            <h5>Recommended Nutrient Guidelines</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-4">
+                                <i class="fas fa-info-circle"></i> <strong>About These Guidelines:</strong> 
+                                These are personalized nutrient recommendations based on general dietary guidelines.
+                            </p>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Nutrient</th>
+                                            <th>Value in Product</th>
+                                            <th>Recommended Limit</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% set displayed_nutrients = [] %}
+                                        
+                                        {# Display warnings first #}
+                                        {% for warning in safety_review.warnings %}
+                                            {% set nutrient_name = warning.split(' content')[0].replace('High ', '') %}
+                                            {% set nutrient_name_lower = nutrient_name.lower() %}
                                             
-                                            {% set displayed_nutrients = [] %}
-                                            
-                                            {% for warning in safety_review.warnings %}
-                                                {% set nutrient_name = warning.split(' content ')[0].replace('High ', '') %}
+                                            {% if nutrient_name_lower not in displayed_nutrients %}
+                                                {% set displayed_nutrients = displayed_nutrients + [nutrient_name_lower] %}
+                                                
                                                 {% set value = warning.split('(')[1].split('g')[0] %}
                                                 {% set limit = warning.split('limit (')[1].split('g')[0] %}
                                                 
-                                                {% if nutrient_name|lower not in displayed_nutrients %}
-                                                    {% set _ = displayed_nutrients.append(nutrient_name|lower) %}
-                                                    <tr>
-                                                        <td>{{ nutrient_name|title }}</td>
-                                                        <td>{{ value }}g</td>
-                                                        <td>≤ {{ limit }}g</td>
-                                                        <td>
-                                                            {% if value|float > limit|float %}
-                                                                <span class="badge bg-danger">High</span>
-                                                            {% elif value|float > limit|float * 0.75 %}
-                                                                <span class="badge bg-warning text-dark">Moderate</span>
-                                                            {% else %}
-                                                                <span class="badge bg-success">Good</span>
+                                                {# Get the actual value from the detailed nutrition info #}
+                                                {% set actual_value = value %}
+                                                {% set found = false %}
+                                                
+                                                {# Try to extract from nutriments if it exists #}
+                                                {% if nutrition.get('nutriments') %}
+                                                    {% for nutrient in nutrition.nutriments|dictsort %}
+                                                        {% set nut_name = nutrient[0].replace('_100g', '').replace('_', ' ') %}
+                                                        {% if (nutrient_name_lower in nut_name.lower() or nut_name.lower() in nutrient_name_lower) and not found %}
+                                                            {% if nutrient[1] and nutrient[1]|float > 0 %}
+                                                                {% set actual_value = nutrient[1] %}
+                                                                {% set found = true %}
                                                             {% endif %}
-                                                        </td>
-                                                    </tr>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% else %}
+                                                    {# Fallback to directly accessing nutrition dictionary #}
+                                                    {% for key, val in nutrition|dictsort %}
+                                                        {% set key_norm = key.replace('_100g', '').replace('_', ' ').lower() %}
+                                                        {% if (nutrient_name_lower in key_norm or key_norm in nutrient_name_lower) and not found %}
+                                                            {% if val and val|float > 0 %}
+                                                                {% set actual_value = val %}
+                                                                {% set found = true %}
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
                                                 {% endif %}
-                                            {% endfor %}
-                                            
-                                            {% for nutrient in safety_review.safe_nutrients %}
-                                                {% if "Good intake of" in nutrient %}
-                                                    {% set nutrient_name = nutrient.split('Good intake of ')[1].split(' (')[0] %}
+                                                
+                                                <tr class="table-warning">
+                                                    <td><strong>{{ nutrient_name }}</strong></td>
+                                                    <td>{{ actual_value }}g</td>
+                                                    <td>{{ limit }}g</td>
+                                                    <td><span class="badge bg-warning text-dark">Exceeds Limit</span></td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {# Display safe nutrients #}
+                                        {% for nutrient in safety_review.safe_nutrients %}
+                                            {% if 'intake of ' in nutrient %}
+                                                {% set nutrient_name = nutrient.split('intake of ')[1].split(' (')[0] %}
+                                                {% set nutrient_name_lower = nutrient_name.lower() %}
+                                                
+                                                {% if nutrient_name_lower not in displayed_nutrients %}
+                                                    {% set displayed_nutrients = displayed_nutrients + [nutrient_name_lower] %}
+                                                    
                                                     {% set value = nutrient.split('(')[1].split('g')[0] %}
                                                     
-                                                    {% if nutrient_name|lower not in displayed_nutrients and value|float > 0 %}
-                                                        {% set _ = displayed_nutrients.append(nutrient_name|lower) %}
-                                                        <tr>
-                                                            <td>{{ nutrient_name|title }}</td>
-                                                            <td>{{ value }}g</td>
-                                                            <td>≥ {{ value }}g (Higher is better)</td>
-                                                            <td>
-                                                                <span class="badge bg-success">Good</span>
-                                                            </td>
+                                                    {# Get the actual value from the detailed nutrition info #}
+                                                    {% set actual_value = value %}
+                                                    {% set found = false %}
+                                                    
+                                                    {# Try to extract from nutriments if it exists #}
+                                                    {% if nutrition.get('nutriments') %}
+                                                        {% for nutrient_item in nutrition.nutriments|dictsort %}
+                                                            {% set nut_name = nutrient_item[0].replace('_100g', '').replace('_', ' ') %}
+                                                            {% if (nutrient_name_lower in nut_name.lower() or nut_name.lower() in nutrient_name_lower) and not found %}
+                                                                {% if nutrient_item[1] and nutrient_item[1]|float > 0 %}
+                                                                    {% set actual_value = nutrient_item[1] %}
+                                                                    {% set found = true %}
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        {# Fallback to directly accessing nutrition dictionary #}
+                                                        {% for key, val in nutrition|dictsort %}
+                                                            {% set key_norm = key.replace('_100g', '').replace('_', ' ').lower() %}
+                                                            {% if (nutrient_name_lower in key_norm or key_norm in nutrient_name_lower) and not found %}
+                                                                {% if val and val|float > 0 %}
+                                                                    {% set actual_value = val %}
+                                                                    {% set found = true %}
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                    
+                                                    {% if actual_value|float > 0 %}
+                                                        <tr class="table-success">
+                                                            <td><strong>{{ nutrient_name }}</strong></td>
+                                                            <td>{{ actual_value }}g</td>
+                                                            <td>Good intake</td>
+                                                            <td><span class="badge bg-success">✓ Beneficial</span></td>
                                                         </tr>
                                                     {% endif %}
                                                 {% endif %}
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <a class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" href="#nutrientInfoCollapse" role="button" aria-expanded="false">
-                                        <i class="bi bi-info-circle me-1"></i> Learn more about these guidelines
-                                    </a>
-                                    <div class="collapse mt-3" id="nutrientInfoCollapse">
-                                        <div class="card card-body">
-                                            <h6 class="mb-2">About These Guidelines</h6>
-                                            <p class="small">These nutrient guidelines are personalized based on your health profile and age. They're derived from the Indian Dietary Guidelines and medical research.</p>
-                                            <p class="small mb-0">The recommended guidelines focus on:</p>
-                                            <ul class="small">
-                                                <li><strong>Macronutrients:</strong> Appropriate levels of carbohydrates, proteins, and fats.</li>
-                                                <li><strong>Sugar:</strong> Limiting added sugars for overall health.</li>
-                                                <li><strong>Sodium/Salt:</strong> Appropriate intake for optimal health.</li>
-                                                <li><strong>Fiber:</strong> Adequate fiber for digestive health.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

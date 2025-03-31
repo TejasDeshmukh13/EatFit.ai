@@ -217,7 +217,23 @@ def check_product_safety(nutrition_data, user_health):
     
     # Process exceeded limits as warnings
     for item in nutrient_analysis['exceeded_limits']:
-        warning_text = f"High {item['nutrient']} content ({item['value']}g) - Exceeds recommended limit ({item['limit']}g)"
+        # Ensure we have accurate values, especially for saturated fat
+        nutrient_value = item['value']
+        
+        # Special check for saturated fat which often has inconsistencies
+        if 'saturated' in item['nutrient'].lower():
+            # Check alternative keys for more accurate values
+            sat_fat_keys = ['saturated-fat_100g', 'saturated_fat_100g', 'saturated_fat', 'saturated-fat']
+            for key in sat_fat_keys:
+                if key in nutrition_data and nutrition_data[key] != nutrient_value:
+                    # If the value exists and is different, use it
+                    if isinstance(nutrition_data[key], (int, float)) or (
+                            isinstance(nutrition_data[key], str) and 
+                            nutrition_data[key].replace('.', '', 1).isdigit()):
+                        nutrient_value = float(nutrition_data[key])
+                        break
+        
+        warning_text = f"High {item['nutrient']} content ({nutrient_value}g) - Exceeds recommended limit ({item['limit']}g)"
         warnings.append(warning_text)
     
     # Add safe nutrients
