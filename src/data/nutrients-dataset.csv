@@ -43,7 +43,7 @@
 ,low bp,Potassium,≤ 200mg,≤ 300mg,≤ 400mg,≤ 500mg,"Yes, excess may lower BP further"
 ,low bp,Cholesterol,≤ 30mg,≤ 50mg,≤ 70mg,≤ 100mg,Limit excessive intake
 ,low bp,Saturated Fat,≤ 2g,≤ 3g,≤ 4g,≤ 5g,Limit processed fats
-,low bp,Trans Fat,0g (Avoid),0g (Avoid),0g (Avoid),0g (Avoid),Yes (Fully avoid)
+,low bp,Trans Fat,0g (Av,0g (Avoid),0g (Avoid),0g (Avoid),Yes (Fully avoid)
 ,low bp,Sugar,≤ 5g,≤ 8g,≤ 10g,≤ 10-15g,Limit excess sugar
 ,low bp,Refined Carbohydrates,Limit,Limit,Limit,Limit,Yes (May cause sudden blood sugar drops)
 ,low bp,Fiber,≤ 3g,≤ 4g,≤ 5g,≤ 5g,"Yes, excess fiber may slow digestion and lower BP"
@@ -68,7 +68,7 @@
 ,secondary hypertension,"Processed/Refined Carbs (White Flour, White Rice, etc.)",Avoid,Avoid,Limit,Limit,Yes (Causes blood sugar and BP spikes)
 ,,,,,,,
 6,underweight(bmi<18.5),Sodium (Salt),≤ 150mg,≤ 200mg,≤ 300mg,"≤ 2,300mg",Limit (Excess sodium can cause fluid retention)
-,underweight(bmi<18.5),Potassium,≥ 200mg,≥ 300mg,≥ 400mg,"≥ 4,700mg",No (Supports fluid balance and healthy muscle function)
+,underweight(bmi<18.5),Potassioid)um,≥ 200mg,≥ 300mg,≥ 400mg,"≥ 4,700mg",No (Supports fluid balance and healthy muscle function)
 ,underweight(bmi<18.5),Cholesterol,≤ 30mg,≤ 50mg,≤ 70mg,≤ 200mg,Limit (Focus on healthy fats for weight gain)
 ,underweight(bmi<18.5),Saturated Fat,≤ 2g,≤ 3g,≤ 4g,≤ 5g,Limit (Use healthy fats like olive oil or avocado)
 ,underweight(bmi<18.5),Trans Fat,0g (Avoid),0g (Avoid),0g (Avoid),0g (Avoid),"Yes (Avoid fully; raises LDL cholesterol, harmful for heart health)"

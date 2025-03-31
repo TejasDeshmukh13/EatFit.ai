@@ -527,6 +527,7 @@ def product_details():
             allergies=allergies,
             safety_review=safety_review,
             is_logged_in=is_logged_in,
+            user_health=user_health,
             nova_score=nova_score,
             score=score,
             image=session.get('image', 'no-image.png'),

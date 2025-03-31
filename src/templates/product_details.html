@@ -784,7 +784,7 @@
                     {% endif %}
 
                     {% if safety_review.safe_nutrients and safety_review.safe_nutrients|length > 0 %}
-                    <div class="safe-nutrients-section">
+                    <div class="safe-nutrients-section mb-4">
                         <h5 class="mb-3 d-flex align-items-center">
                             <i class="bi bi-check-circle-fill text-success me-2 fs-4"></i>
                             <span>Healthy Nutrient Levels</span>
@@ -792,12 +792,129 @@
                         <div class="alert alert-success mb-0">
                             <ul class="mb-0 ps-4">
                                 {% for nutrient in safety_review.safe_nutrients %}
-                                <li class="mb-2">{{ nutrient }}</li>
+                                    {% set value = nutrient.split('(')[1].split('g')[0] if '(' in nutrient else 0 %}
+                                    {% if value|float > 0 %}
+                                        <li class="mb-2">{{ nutrient }}</li>
+                                    {% endif %}
                                 {% endfor %}
                             </ul>
                         </div>
                     </div>
                     {% endif %}
+                    
+                    <!-- Nutrient Guidelines Based on Health Profile -->
+                    <div class="nutrient-guidelines">
+                        <h5 class="mb-3 d-flex align-items-center">
+                            <i class="bi bi-clipboard-data-fill text-primary me-2 fs-4"></i>
+                            <span>Recommended Nutrient Guidelines</span>
+                        </h5>
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <p class="text-muted small mb-2">
+                                    Based on your health profile, these are the recommended limits for your nutrients. The values 
+                                    below show how this product compares to those limits.
+                                </p>
+                                <!-- Nutrient Guidelines Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Nutrient</th>
+                                                <th>Amount</th>
+                                                <th>Recommended Limit</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Each row will be populated from the nutrient analysis data -->
+                                            {% set nutrients = {
+                                                'carbohydrates': nutrition.get('carbohydrates_100g', nutrition.get('carbohydrates', 0)),
+                                                'sugars': nutrition.get('sugars_100g', nutrition.get('sugars', 0)),
+                                                'fat': nutrition.get('fat_100g', nutrition.get('fat', 0)),
+                                                'saturated_fat': nutrition.get('saturated-fat_100g', nutrition.get('saturated_fat', 0)),
+                                                'salt': nutrition.get('salt_100g', nutrition.get('salt', 0)),
+                                                'fiber': nutrition.get('fiber_100g', nutrition.get('fiber', 0)),
+                                                'protein': nutrition.get('proteins_100g', nutrition.get('protein', 0))
+                                            } %}
+                                            
+                                            {% set displayed_nutrients = [] %}
+                                            
+                                            {% for warning in safety_review.warnings %}
+                                                {% set nutrient_name = warning.split(' content ')[0].replace('High ', '') %}
+                                                {% set value = warning.split('(')[1].split('g')[0] %}
+                                                {% set limit = warning.split('limit (')[1].split('g')[0] %}
+                                                {% set condition = warning.split('your ')[1] %}
+                                                
+                                                {% if nutrient_name|lower not in displayed_nutrients %}
+                                                    {% set _ = displayed_nutrients.append(nutrient_name|lower) %}
+                                                    <tr>
+                                                        <td>{{ nutrient_name|title }}</td>
+                                                        <td>{{ value }}g</td>
+                                                        <td>≤ {{ limit }}g</td>
+                                                        <td>
+                                                            {% if value|float > limit|float %}
+                                                                <span class="badge bg-danger">High</span>
+                                                            {% elif value|float > limit|float * 0.75 %}
+                                                                <span class="badge bg-warning text-dark">Moderate</span>
+                                                            {% else %}
+                                                                <span class="badge bg-success">Good</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                            
+                                            {% for nutrient in safety_review.safe_nutrients %}
+                                                {% if "Good intake of" in nutrient %}
+                                                    {% set nutrient_name = nutrient.split('Good intake of ')[1].split(' (')[0] %}
+                                                    {% set value = nutrient.split('(')[1].split('g')[0] %}
+                                                    
+                                                    {% if nutrient_name|lower not in displayed_nutrients and value|float > 0 %}
+                                                        {% set _ = displayed_nutrients.append(nutrient_name|lower) %}
+                                                        <tr>
+                                                            <td>{{ nutrient_name|title }}</td>
+                                                            <td>{{ value }}g</td>
+                                                            <td>≥ {{ value }}g (Higher is better)</td>
+                                                            <td>
+                                                                <span class="badge bg-success">Good</span>
+                                                            </td>
+                                                        </tr>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <a class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" href="#nutrientInfoCollapse" role="button" aria-expanded="false">
+                                        <i class="bi bi-info-circle me-1"></i> Learn more about these guidelines
+                                    </a>
+                                    <div class="collapse mt-3" id="nutrientInfoCollapse">
+                                        <div class="card card-body">
+                                            <h6 class="mb-2">About These Guidelines</h6>
+                                            <p class="small">These nutrient guidelines are personalized based on your health profile and age. They're derived from the Indian Dietary Guidelines and medical research.</p>
+                                            <p class="small mb-0">The recommended limits vary based on your specific health conditions:</p>
+                                            <ul class="small">
+                                                {% if user_health.get('diabetes', False) %}
+                                                <li><strong>Diabetes:</strong> Lower limits for carbohydrates and sugars to help manage blood glucose levels.</li>
+                                                {% endif %}
+                                                {% if user_health.get('bp', False) %}
+                                                <li><strong>High Blood Pressure:</strong> Lower sodium/salt limits to help reduce blood pressure.</li>
+                                                {% endif %}
+                                                {% if user_health.get('cholesterol', False) %}
+                                                <li><strong>High Cholesterol:</strong> Lower limits for saturated fat and total fat to help manage cholesterol levels.</li>
+                                                {% endif %}
+                                                {% if user_health.get('bmi', 0) > 30 %}
+                                                <li><strong>BMI over 30:</strong> Special attention to calories and fat content for weight management.</li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="text-center mt-4">
                         <p class="text-muted small mb-0">
