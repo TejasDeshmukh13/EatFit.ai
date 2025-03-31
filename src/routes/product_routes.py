@@ -7,7 +7,7 @@ from utils.image_processing import OCR_CONFIGS, extract_text
 from utils.nutrition import (
     parse_nutrition, process_with_config, calculate_nutri_score, 
     fetch_by_barcode, get_alternatives_by_category,
-    get_nova_score, get_product_match_percentage
+    get_nova_score
 )
 from utils.allergies import map_allergens_to_ingredients
 from utils.conclusion import check_product_safety
@@ -370,7 +370,7 @@ def product_details():
                     nutrition_data['brand'] = product.get('brands', 'Unknown Brand')
                     nutrition_data['image_url'] = product.get('image_url')
                     
-                    # Update nutriments
+                    # Update nutriments from ocr
                     if 'nutriments' in product:
                         for key, value in product['nutriments'].items():
                             nutrition_data[key] = value

@@ -543,33 +543,6 @@ def diet_recommendation():
         flash(f'Error fetching user profile: {str(e)}', 'error')
         return redirect(url_for('user.health_form'))
 
-@diet_bp.route('/meal_alternatives', methods=['GET', 'POST'])
-def meal_alternatives():
-    """Get meal alternatives for a specific meal type."""
-    meal_type = request.args.get('type', '')
-    
-    if meal_type not in ['breakfast', 'lunch', 'dinner']:
-        flash('Invalid meal type selected.')
-        return redirect(url_for('diet_bp.get_meal'))
-    
-    # Get user profile data from database
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('auth_bp.login'))
-    
-    # Get profile from DB
-    profile = get_profile_by_user_id(user_id)
-    
-    # Import the meal options utility module
-    from src.utils.meal_options import get_meal_alternatives
-    
-    # Get meal alternatives based on meal type and user profile
-    alternatives = get_meal_alternatives(meal_type, profile)
-    
-    return render_template('meal_alternatives.html', 
-                          meal_type=meal_type,
-                          alternatives=alternatives)
-
 def get_profile_by_user_id(user_id):
     """
     Get user profile data from the database.

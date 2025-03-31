@@ -27,7 +27,7 @@
                 <div class="card-img-container">
                     {% if alt.image_url %}
                     <img src="{{ alt.image_url }}" class="card-img-top" alt="{{ alt.product_name }}" 
-                         loading="lazy" onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                         loading="lazy" onerror="this.src='{{ url_for('static', filename='images/no-image.png')}}'">
                     {% else %}
                     <div class="text-center p-4 bg-light">
                         <span class="text-muted">No image available</span>

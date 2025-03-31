@@ -33,7 +33,7 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <h3>Extracted Nutrition Values</h3>
-                    <p><small>OCR Configuration #{{ config_number }} was used</small></p>
+                    <p><small>OCR Configuration #{{ config_number-1 }} was used</small></p>
                     
                     <form method="POST" id="nutritionForm">
                         <div class="alert alert-info">
@@ -99,7 +99,7 @@
                         
                         <div class="btn-group d-flex mt-4" role="group">
                             <button type="submit" name="user_response" value="accept" class="btn btn-success flex-grow-1">Accept Values</button>
-                            <button type="submit" name="user_response" value="try_next" class="btn btn-primary flex-grow-1">Try New OCR Scan</button>
+                            <button type="submit" name="user_response" value="try_next" class="btn btn-primary flex-grow-1">Start OCR Scan</button>
                         </div>
                     </form>
                 </div>

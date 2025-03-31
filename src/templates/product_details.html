@@ -315,6 +315,12 @@
     .allergen-list {
         scrollbar-width: thin;
         scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+        padding-right: 10px;
+    }
+    
+    .allergen-list.scrollable {
+        max-height: 300px;
+        overflow-y: auto;
     }
     
     .allergen-list::-webkit-scrollbar {
@@ -332,6 +338,44 @@
     
     .allergen-list::-webkit-scrollbar-thumb:hover {
         background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Allergen description styles */
+    .allergen-item {
+        margin-bottom: 12px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding-bottom: 12px;
+    }
+    
+    .allergen-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .allergen-description {
+        font-size: 0.85rem;
+        margin-top: 4px;
+        line-height: 1.4;
+        border-left: 3px solid rgba(0, 0, 0, 0.1);
+        padding-left: 12px;
+        margin-left: 5px;
+    }
+    
+    .alert-danger .allergen-description {
+        border-left-color: rgba(220, 53, 69, 0.5);
+    }
+    
+    .alert-warning .allergen-description {
+        border-left-color: rgba(255, 193, 7, 0.5);
+    }
+
+    .allergen-badge {
+        display: inline-block;
+        font-size: 0.95rem;
+        padding: 6px 12px;
+        margin-bottom: 6px;
+        border-radius: 20px;
+        font-weight: 600;
     }
     </style>
 {% endblock %}
@@ -460,13 +504,42 @@
                     </div>
                     <div class="section-content">
                         <div class="d-flex align-items-center mb-4">
-                            <div class="bg-{{ 'danger' if nova_score.score > 2 else 'warning' if nova_score.score == 2 else 'success' }} text-white fw-bold text-center me-3" 
+                            <div class="bg-{{ 'danger' if nova_score.score > 2 else 'warning' if nova_score.score == 2 else 'success' }} text-white fw-bold text-center me-3 position-relative" 
                                  style="width: 50px; height: 50px; line-height: 50px; font-size: 1.5rem; border-radius: 10px;">
                                 {{ nova_score.score }}
                             </div>
                             <div>
-                                <h5 class="mb-0">{{ nova_score.description }}</h5>
-                                <p class="text-muted mb-0">{{ nova_score.markers_count }} ultra-processing markers</p>
+                                <h5 class="mb-0">{{ nova_score.description }} 
+                                    <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                       title="{{ nova_score.nova_explanation }}">
+                                        <i class="bi bi-info-circle"></i>
+                                    </a>
+                                </h5>
+                                <p class="text-muted mb-0">{{ nova_score.markers_count }} ultra-processing markers
+                                    <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                       title="{{ nova_score.markers_explanation }}">
+                                        <i class="bi bi-info-circle"></i>
+                                    </a>
+                                </p>
+                                <a href="#processingInfo" class="small" data-bs-toggle="collapse" role="button" aria-expanded="false">
+                                    <i class="bi bi-chevron-down"></i> Learn more about food processing
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="collapse mt-3 mb-4" id="processingInfo">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="mb-3">About the NOVA Classification</h6>
+                                    <p class="small">The NOVA food classification system categorizes foods according to the extent and purpose of industrial processing:</p>
+                                    <ul class="small">
+                                        <li><strong>Group 1 (Score 1):</strong> Unprocessed or minimally processed foods</li>
+                                        <li><strong>Group 2 (Score 2):</strong> Processed culinary ingredients</li>
+                                        <li><strong>Group 3 (Score 3):</strong> Processed foods</li>
+                                        <li><strong>Group 4 (Score 4):</strong> Ultra-processed foods</li>
+                                    </ul>
+                                    <p class="small">Ultra-processing markers include additives, artificial flavors, colors, and preservatives that suggest industrial manufacturing processes.</p>
+                                </div>
                             </div>
                         </div>
                         
@@ -610,12 +683,19 @@
                     <div class="row">
                         {% if has_high_risk %}
                         <!-- High Risk Allergens -->
-                        <div class="{% if has_high_risk %}col-md-6{% else %}col-md-12{% endif %} mb-3">
+                        <div class="{% if has_high_risk %}col-md-12{% else %}col-md-12{% endif %} mb-4">
                             <div class="alert alert-danger mb-0">
-                                <h6 class="mb-2"><i class="bi bi-exclamation-octagon-fill"></i> Contains:</h6>
-                                <div class="d-flex flex-wrap gap-2">
+                                <h6 class="mb-3"><i class="bi bi-exclamation-octagon-fill"></i> Contains:</h6>
+                                <div class="allergen-list{% if high_risk_allergens|length > 3 %} scrollable{% endif %}">
                                     {% for allergy in high_risk_allergens %}
-                                        <span class="badge bg-danger">{{ allergy.Ingredients }}</span>
+                                        <div class="allergen-item">
+                                            <span class="allergen-badge bg-danger text-white">{{ allergy.Ingredients }}</span>
+                                            {% if allergy.Allergies %}
+                                                <div class="allergen-description text-danger">
+                                                    {{ allergy.Allergies }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -624,12 +704,19 @@
                         
                         {% if other_allergens %}
                         <!-- Other Allergens -->
-                        <div class="{% if has_high_risk %}col-md-6{% else %}col-md-12{% endif %} mb-3">
+                        <div class="{% if has_high_risk %}col-md-12{% else %}col-md-12{% endif %} mb-3">
                             <div class="alert alert-warning mb-0">
-                                <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill"></i> May contain:</h6>
-                                <div class="d-flex flex-wrap gap-2">
+                                <h6 class="mb-3"><i class="bi bi-exclamation-triangle-fill"></i>Contains:</h6>
+                                <div class="allergen-list{% if other_allergens|length > 3 %} scrollable{% endif %}">
                                     {% for allergy in other_allergens %}
-                                        <span class="badge bg-warning text-dark">{{ allergy.Ingredients }}</span>
+                                        <div class="allergen-item">
+                                            <span class="allergen-badge bg-warning text-dark">{{ allergy.Ingredients }}</span>
+                                            {% if allergy.Allergies %}
+                                                <div class="allergen-description text-dark">
+                                                    {{ allergy.Allergies }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -645,7 +732,7 @@
             </div>
         </div>
         
-        <!-- Safety Conclusion -->
+        <!-- Health Analysis -->
         <div class="nutrition-section animate-fade-in delay-4">
             <div class="section-header">
                 <i class="bi bi-clipboard2-pulse-fill"></i>
@@ -663,48 +750,61 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="conclusion-box p-4 rounded">
+                <div class="conclusion-box p-4 rounded bg-light">
                     <div class="mb-4">
-                        <h6 class="conclusion-title">
-                            {% if 'Caution' in safety_review.conclusion %}
-                            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
-                            {% elif 'acceptable' in safety_review.conclusion %}
-                            <i class="bi bi-lightning-fill text-info me-2"></i>
+                        <h5 class="conclusion-title d-flex align-items-center mb-3">
+                            {% if '⚠️' in safety_review.conclusion %}
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
+                            {% elif '✅' in safety_review.conclusion %}
+                            <i class="bi bi-check-circle-fill text-success me-2 fs-4"></i>
                             {% else %}
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <i class="bi bi-info-circle-fill text-info me-2 fs-4"></i>
                             {% endif %}
-                            Analysis Summary
-                        </h6>
-                        <p class="mb-0">{{ safety_review.conclusion | replace("Exercise caution", "Caution") | safe }}</p>
+                            <span>Analysis Summary</span>
+                        </h5>
+                        <div class="alert {% if '⚠️' in safety_review.conclusion %}alert-warning{% elif '✅' in safety_review.conclusion %}alert-success{% else %}alert-info{% endif %} mb-0">
+                            <p class="mb-0 fs-5">{{ safety_review.conclusion | safe }}</p>
+                        </div>
                     </div>
 
-                    {% if safety_review.warnings %}
+                    {% if safety_review.warnings and safety_review.warnings|length > 0 %}
                     <div class="warnings-section mb-4">
-                        <h6 class="mb-3">
-                            <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
-                            Health Warnings
-                        </h6>
-                        {% for warning in safety_review.warnings %}
-                        <div class="alert alert-danger mb-2">{{ warning | replace("Exercise caution", "Caution") }}</div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    {% if safety_review.safe_nutrients %}
-                    <div class="safe-nutrients-section">
-                        <h6 class="mb-3">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Healthy Nutrient Levels
-                        </h6>
-                        <div class="alert alert-success">
-                            <ul class="mb-0">
-                                {% for nutrient in safety_review.safe_nutrients %}
-                                <li>{{ nutrient }}</li>
+                        <h5 class="mb-3 d-flex align-items-center">
+                            <i class="bi bi-exclamation-circle-fill text-danger me-2 fs-4"></i>
+                            <span>Health Warnings</span>
+                        </h5>
+                        <div class="alert alert-danger mb-0">
+                            <ul class="mb-0 ps-4">
+                                {% for warning in safety_review.warnings %}
+                                <li class="mb-2">{{ warning }}</li>
                                 {% endfor %}
                             </ul>
                         </div>
                     </div>
                     {% endif %}
+
+                    {% if safety_review.safe_nutrients and safety_review.safe_nutrients|length > 0 %}
+                    <div class="safe-nutrients-section">
+                        <h5 class="mb-3 d-flex align-items-center">
+                            <i class="bi bi-check-circle-fill text-success me-2 fs-4"></i>
+                            <span>Healthy Nutrient Levels</span>
+                        </h5>
+                        <div class="alert alert-success mb-0">
+                            <ul class="mb-0 ps-4">
+                                {% for nutrient in safety_review.safe_nutrients %}
+                                <li class="mb-2">{{ nutrient }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-center mt-4">
+                        <p class="text-muted small mb-0">
+                            Analysis based on your health profile and the nutrients-dataset.
+                            <br>Consult with a healthcare professional for personalized dietary advice.
+                        </p>
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -790,6 +890,12 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
         // Animate nutrient bars after load
         setTimeout(function() {
             const nutrientBars = document.querySelectorAll('.nutrient-fill');

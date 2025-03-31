@@ -159,7 +159,7 @@ def enhanced_ocr(processed_images):
     for i, img in enumerate(processed_images):
         for cfg_idx, cfg in enumerate(OCR_CONFIGS):
             try:
-                config_str = f'--oem {cfg["oem"]} --psm {cfg["psm"]} {cfg.get("extra", "")}'
+                config_str = '--oem 3 --psm 6 -c tessedit_char_whitelist="0123456789.,ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz() " --tessdata-dir "D:\\PyProject\\Eatfit\\Tesseract\\tessdata" -l eng'
                 text = pytesseract.image_to_string(img, config=config_str)
                 
                 # Clean OCR text

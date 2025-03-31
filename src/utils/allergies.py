@@ -13,7 +13,7 @@ DEFAULT_ALLERGIES_DATA = {
         "peanuts", "tree nuts", "milk", "eggs", "soy", "wheat", "fish", "shellfish",
         "sesame", "mustard", "celery", "lupin", "sulphites", "molluscs"
     ],
-    "Allergies": [
+    "Allergies/Problems Caused": [
         "Peanut allergy - High risk of severe reactions including anaphylaxis",
         "Tree nut allergy - Common allergen that can cause severe reactions",
         "Milk allergy/Lactose intolerance - Can cause digestive issues and allergic reactions",
@@ -36,7 +36,6 @@ try:
     csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "food allergies.csv")
     if os.path.exists(csv_path):
         df_allergies = pd.read_csv(csv_path)
-        df_allergies.rename(columns={"Allergies/Problems Caused": "Allergies"}, inplace=True)
         logger.info("Successfully loaded allergies data from CSV file")
     else:
         df_allergies = pd.DataFrame(DEFAULT_ALLERGIES_DATA)
@@ -133,13 +132,14 @@ def map_allergens_to_ingredients(ingredients):
     # Add direct matches to results
     for _, row in direct_matches.iterrows():
         key = row['Ingredients']
+        problems = row.get('Allergies/Problems Caused', '')
         if key not in matched_allergies:
             matched_allergies[key] = {
                 'Ingredients': row['Ingredients'],
-                'Allergies': row['Allergies'],
+                'Allergies': problems if not pd.isna(problems) else '',
                 'Found_In': row['Ingredients'],
                 'Confidence': 'High',
-                'Action': 'Avoid' if 'severe' in str(row['Allergies']).lower() else 'Caution'
+                'Action': 'Avoid' if 'severe' in str(problems).lower() or 'anaphylaxis' in str(problems).lower() else 'Caution'
             }
             logger.info(f"Direct match found: {key}")
     
@@ -151,6 +151,7 @@ def map_allergens_to_ingredients(ingredients):
         for _, row in df_allergies.iterrows():
             allergen = clean_ingredient(str(row['Ingredients']))
             allergen_variations = get_ingredient_variations(allergen)
+            problems = row.get('Allergies/Problems Caused', '')
             
             # More lenient matching: check if any part of the ingredient matches
             found_match = False
@@ -181,10 +182,10 @@ def map_allergens_to_ingredients(ingredients):
                 if key not in matched_allergies:  # Only add if not already found
                     matched_allergies[key] = {
                         'Ingredients': row['Ingredients'],
-                        'Allergies': row['Allergies'],
+                        'Allergies': problems if not pd.isna(problems) else '',
                         'Found_In': ingredient,
                         'Confidence': 'High' if match_type == "exact" else 'Medium',
-                        'Action': 'Avoid' if 'severe' in str(row['Allergies']).lower() else 'Caution'
+                        'Action': 'Avoid' if 'severe' in str(problems).lower() or 'anaphylaxis' in str(problems).lower() else 'Caution'
                     }
                     logger.info(f"Found {match_type} match: {ingredient} -> {key}")
     

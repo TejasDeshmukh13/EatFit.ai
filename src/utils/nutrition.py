@@ -326,14 +326,15 @@ def process_with_config(image_path, config_idx, barcode=None):
                 
                 # Use official scores from API if available
                 if api_data.get('nova_group'):
-                    nova_score = int(api_data.get('nova_group'))
-                    nutrition_data['nova_score'] = {
-                        'score': nova_score,
-                        'description': "Ultra-processed foods" if nova_score == 4 else 
-                                      "Processed foods" if nova_score == 3 else
-                                      "Processed culinary ingredients" if nova_score == 2 else
-                                      "Unprocessed or minimally processed foods",
-                        'markers_count': 2 if nova_score == 4 else 1 if nova_score == 3 else 0
+                    # Use the comprehensive get_nova_score function for score details
+                    nova_score_details = get_nova_score(api_data)
+                    nutrition_data['nova_score'] = nova_score_details
+                    
+                    # Add processing information to the nutrition data
+                    nutrition_data['processing'] = {
+                        'nova_group': nova_score_details['score'],
+                        'nova_explanation': nova_score_details['nova_explanation'],
+                        'markers_explanation': nova_score_details['markers_explanation']
                     }
         
         # Extract data from image using OCR
@@ -461,34 +462,6 @@ def calculate_nutri_score(nutrition):
     else:
         return 'E'  # Very poor nutritional quality
 
-def get_product_match_percentage(nutrition_data, nutri_score, nova_score):
-    """
-    Calculate how well a product matches user preferences.
-    Returns a percentage between 0-100.
-    """
-    # Default match is poor
-    match_percentage = 12
-    
-    # Better nutritional score improves match
-    if nutri_score in ['A', 'B']:
-        match_percentage += 45
-    elif nutri_score == 'C':
-        match_percentage += 25
-    
-    # Less processed food improves match
-    try:
-        nova_value = int(nova_score) if nova_score not in [None, 'Unknown'] else 4
-        if nova_value < 3:
-            match_percentage += 43
-        elif nova_value == 3:
-            match_percentage += 20
-    except (ValueError, TypeError):
-        # If nova_score can't be converted to int, assume worst case
-        pass
-    
-    # Cap at 100%
-    return min(match_percentage, 100)
-
 def get_nova_score(nutrition_data):
     """
     Get NOVA score for food processing level.
@@ -500,68 +473,17 @@ def get_nova_score(nutrition_data):
     3 - Processed foods
     4 - Ultra-processed foods
     """
-    # Get NOVA group from nutrition data
-    nova_group = nutrition_data.get('nova_group', None)
+    # Get NOVA group from API data
+    nova_group = nutrition_data.get('nova_group', 4)  # Default to 4 if not specified
     
-    # If not found directly, try to find in nested dictionaries
-    if nova_group is None:
-        nova_group = (
-            nutrition_data.get('processing', {}).get('nova_group') or
-            nutrition_data.get('nova_score', None)  # Don't default yet
-        )
-    
-    # Try to convert to int, but don't default to 4 yet
+    # Ensure nova_group is an integer between 1 and 4
     try:
-        if nova_group is not None:
-            nova_group = int(nova_group)
+        nova_group = int(nova_group)
+        nova_group = max(1, min(4, nova_group))
     except (ValueError, TypeError):
-        nova_group = None
-        
-    # Count ultra-processing markers
-    markers_count = 0
+        nova_group = 4  # Default to ultra-processed if invalid
     
-    # Check additives - these are ultra-processing markers
-    # If there are multiple additives, that's a strong marker for ultra-processing
-    additives = nutrition_data.get('additives_tags', [])
-    if additives and isinstance(additives, list):
-        for additive in additives:
-            markers_count += 1
-            # If it's already formatted as "E123 - Name", don't count it twice
-            if not (isinstance(additive, str) and " - " in additive):
-                # Extra check for additives that indicate ultra-processing
-                if any(marker in additive.lower() for marker in 
-                      ['color', 'colour', 'flavour', 'flavor', 'sweetener', 'emulsifier']):
-                    markers_count += 1
-    
-    # Check for specific ingredients or processing methods
-    ingredients_analysis_tags = nutrition_data.get('ingredients_analysis_tags', [])
-    if ingredients_analysis_tags and isinstance(ingredients_analysis_tags, list):
-        # Count specific ultra-processing markers in the ingredients
-        ultra_processing_tags = [
-            'en:flavour', 'en:flavor', 'en:artificial-flavour', 
-            'en:artificial-flavor', 'en:hydrolysed', 'en:hydrogenated',
-            'en:preservative', 'en:emulsifier', 'en:colour', 'en:color'
-        ]
-        for tag in ingredients_analysis_tags:
-            if any(process_tag in tag.lower() for process_tag in ultra_processing_tags):
-                markers_count += 1
-    
-    # If markers_count > 0, it's likely at least NOVA group 3 or 4
-    if markers_count > 0 and (nova_group is None or nova_group < 3):
-        nova_group = 4 if markers_count >= 3 else 3
-    
-    # If we still don't have a group, use default logic based on what we've learned
-    if nova_group is None:
-        if markers_count >= 3:
-            nova_group = 4
-        elif markers_count > 0:
-            nova_group = 3
-        else:
-            nova_group = 1  # Default to minimally processed if no markers and no group specified
-    
-    # Ensure nova_group is between 1 and 4
-    nova_group = max(1, min(4, nova_group))
-    
+    # Define descriptions and explanations
     descriptions = {
         1: "Unprocessed or minimally processed foods",
         2: "Processed culinary ingredients",
@@ -569,8 +491,26 @@ def get_nova_score(nutrition_data):
         4: "Ultra-processed foods"
     }
     
+    explanations = {
+        1: "NOVA score 1 indicates unprocessed or minimally processed foods that are natural and have undergone minimal alterations.",
+        2: "NOVA score 2 indicates processed culinary ingredients like oils, butter, and sugar that are derived from natural foods through processes like pressing or refining.",
+        3: "NOVA score 3 indicates moderately processed foods with additives for preservation or to enhance taste, but still recognizable as derived from real foods.",
+        4: "NOVA score 4 indicates ultra-processed foods with multiple ingredients including additives not typically used in home cooking, often designed to be convenient and highly palatable."
+    }
+    
+    markers_explanation = "Ultra-processing markers are indicators of industrial processes applied to foods, such as additives, artificial flavors, hydrogenated oils, and preservatives."
+    
+    # Set the marker count based on the NOVA group
+    markers_count = 0
+    if nova_group == 3:
+        markers_count = 1
+    elif nova_group == 4:
+        markers_count = 2
+    
     return {
         'score': nova_group,
         'description': descriptions[nova_group],
-        'markers_count': markers_count
+        'markers_count': markers_count,
+        'nova_explanation': explanations[nova_group],
+        'markers_explanation': markers_explanation
     } 

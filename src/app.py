@@ -87,7 +87,7 @@ def get_diet_recommendation():
                 'error': 'Missing required fields. Please provide age, weight, and height.'
             }), 400
             
-        bmi, bmi_category, breakfast, lunch, dinner = recommend_meal(
+        bmi, bmi_category, breakfast, lunch, dinner = recommend_meal( # type: ignore
             age=float(age),
             weight=float(weight),
             height_ft=float(height),
