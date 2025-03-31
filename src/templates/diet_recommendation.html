@@ -89,21 +89,51 @@
         overflow: hidden;
         box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
+        border: 1px solid #f0f0f0;
+        background-color: #ffffff;
     }
     
     .meal-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        border-color: #e0e0e0;
     }
     
     .meal-card-header {
-        padding: 1rem;
-        background-color: #f8f9fa;
+        padding: 1rem 1.5rem;
+        background: linear-gradient(to right, #f9fcff, #f6f9fc);
         border-bottom: 1px solid #e9ecef;
+    }
+    
+    .meal-card-header h4 {
+        color: #333;
+        font-weight: 600;
+    }
+    
+    .meal-card-header .badge {
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
     .meal-card-content {
         padding: 1.5rem;
+    }
+    
+    .meal-card-content .bi-circle-fill {
+        color: var(--primary-color);
+        opacity: 0.8;
+        transition: all 0.2s;
+    }
+    
+    .meal-card-content div:hover .bi-circle-fill {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    
+    .meal-card-content span {
+        color: #555;
+        font-size: 0.95rem;
     }
     
     .meal-card-content ul {
@@ -128,6 +158,12 @@
         padding: 1.5rem;
         border-left: 4px solid var(--primary-color);
         box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .tip-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
     }
     
     .tip-card h5 {
@@ -135,9 +171,24 @@
         align-items: center;
         margin-bottom: 1rem;
         color: var(--primary-color);
+        justify-content: space-between;
     }
     
-    .tip-card h5 i {
+    .tip-card h5 i.bi-plus-circle,
+    .tip-card h5 i.bi-dash-circle {
+        transition: transform 0.3s ease;
+    }
+    
+    .tip-card h5:hover i.bi-plus-circle,
+    .tip-card h5:hover i.bi-dash-circle {
+        transform: scale(1.2);
+    }
+    
+    .tip-card p.collapse.show {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    .tip-card h5 i:first-child {
         margin-right: 0.5rem;
     }
     
@@ -285,11 +336,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="mb-3 mt-3">
-                    <label for="other_conditions" class="form-label">Other Conditions</label>
-                    <textarea class="form-control" id="other_conditions" name="other_conditions" rows="2" placeholder="Please specify any other medical conditions...">{{ user_profile.other_conditions|default('') }}</textarea>
-                </div>
             </div>
             
             <div class="text-end">
@@ -303,16 +349,192 @@
             <div class="diet-section">
                 <div class="diet-section-header">
                     <i class="bi bi-pie-chart-fill"></i>
-                    <span>Calorie Needs</span>
+                    <span>Daily Needs</span>
                 </div>
                 <div class="diet-section-content text-center">
-                    <div class="progress-wheel mb-4">
+                    <div class="progress-wheel mb-4 position-relative">
                         <div class="progress-circle" style="background: conic-gradient(var(--primary-color) 0% 70%, #e9ecef 70% 100%);">
-                            <span class="progress-value">{{ diet_plan.daily_calories|default(1800) }}</span>
+                            {% if diet_plan.adjusted_calories and diet_plan.adjusted_calories != diet_plan.daily_calories %}
+                                <span class="progress-value">{{ diet_plan.adjusted_calories }}</span>
+                                <span class="position-absolute top-0 end-0 mt-2 me-2">
+                                    <button class="btn btn-sm text-primary border-0 p-0" data-bs-toggle="tooltip" data-bs-placement="top" title="Adjusted based on your BMI">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                    </button>
+                                </span>
+                            {% else %}
+                                <span class="progress-value">{{ diet_plan.daily_calories|default(1800) }}</span>
+                            {% endif %}
                         </div>
                     </div>
                     <h5>Daily Calories</h5>
                     <p class="text-muted">Based on your age, weight, and height</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-4">
+                            <div class="border rounded py-2 px-1">
+                                {% set calories = diet_plan.adjusted_calories if diet_plan.adjusted_calories is defined else diet_plan.daily_calories|default(1800) %}
+                                {% set protein_g = (calories * 0.25 / 4)|int %}
+                                <h6 class="mb-1">{{ protein_g }}g</h6>
+                                <small class="text-muted d-block">Protein</small>
+                                <a href="#" class="small text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Protein is essential for muscle repair and growth. Aim for 0.8-1g per kg of body weight.">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded py-2 px-1">
+                                {% set carbs_g = (calories * 0.5 / 4)|int %}
+                                <h6 class="mb-1">{{ carbs_g }}g</h6>
+                                <small class="text-muted d-block">Carbs</small>
+                                <a href="#" class="small text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Carbohydrates are your body's main source of energy. Focus on complex carbs from whole grains, fruits, and vegetables.">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded py-2 px-1">
+                                {% set fat_g = (calories * 0.25 / 9)|int %}
+                                <h6 class="mb-1">{{ fat_g }}g</h6>
+                                <small class="text-muted d-block">Fat</small>
+                                <a href="#" class="small text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Healthy fats are essential for hormone production and nutrient absorption. Choose sources like avocados, nuts, olive oil, and fatty fish.">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#nutritionInfo" aria-expanded="false">
+                            <i class="bi bi-plus-circle"></i> Nutritional Requirements
+                        </button>
+                        <div class="collapse mt-3" id="nutritionInfo">
+                            <div class="card card-body text-start">
+                                <h6 class="mb-2">Daily Nutritional Needs</h6>
+                                <ul class="small mb-1">
+                                    <li><strong>Water:</strong> 2-3 liters/day</li>
+                                    <li><strong>Fiber:</strong> 25-30g/day</li>
+                                    <li><strong>Calcium:</strong> 1000mg/day</li>
+                                    <li><strong>Iron:</strong> 8-18mg/day (women need more)</li>
+                                    <li><strong>Vitamin D:</strong> 600-800 IU/day</li>
+                                    <li><strong>Omega-3 Fatty Acids:</strong> 250-500mg/day</li>
+                                </ul>
+                                <p class="small mt-2 mb-0 text-muted">These are general guidelines. Individual needs may vary based on age, gender, activity level, and health conditions.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#foodSourcesInfo" aria-expanded="false">
+                            <i class="bi bi-plus-circle"></i> Food Sources
+                        </button>
+                        <div class="collapse mt-3" id="foodSourcesInfo">
+                            <div class="card card-body text-start">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <h6 class="mb-1 text-primary">Protein Sources</h6>
+                                        <ul class="small mb-3 ps-3">
+                                            <li>Chicken breast (26g per 100g)</li>
+                                            <li>Eggs (6g per egg)</li>
+                                            <li>Greek yogurt (10g per 100g)</li>
+                                            <li>Lentils (9g per 100g cooked)</li>
+                                            <li>Tofu (8g per 100g)</li>
+                                            <li>Cottage cheese (11g per 100g)</li>
+                                            <li>Salmon (20g per 100g)</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <h6 class="mb-1 text-primary">Carbohydrate Sources</h6>
+                                        <ul class="small mb-3 ps-3">
+                                            <li>Brown rice (23g per 100g cooked)</li>
+                                            <li>Sweet potatoes (20g per 100g)</li>
+                                            <li>Oats (66g per 100g dry)</li>
+                                            <li>Quinoa (21g per 100g cooked)</li>
+                                            <li>Whole grain bread (15g per slice)</li>
+                                            <li>Beans (20g per 100g cooked)</li>
+                                            <li>Bananas (23g per medium)</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="mb-1 text-primary">Healthy Fat Sources</h6>
+                                        <ul class="small mb-0 ps-3">
+                                            <li>Avocados (15g per 100g)</li>
+                                            <li>Olive oil (14g per tbsp)</li>
+                                            <li>Almonds (14g per 25g)</li>
+                                            <li>Walnuts (65g per 100g)</li>
+                                            <li>Chia seeds (9g per tbsp)</li>
+                                            <li>Flaxseeds (6g per tbsp)</li>
+                                            <li>Salmon (13g per 100g)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <h6 class="mb-2 text-primary">Essential Vitamins & Minerals</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm small">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Nutrient</th>
+                                                        <th>Function</th>
+                                                        <th>Food Sources</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>Vitamin A</td>
+                                                        <td>Vision, immune function</td>
+                                                        <td>Sweet potatoes, carrots, spinach, eggs</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Vitamin C</td>
+                                                        <td>Immune support, collagen production</td>
+                                                        <td>Citrus fruits, bell peppers, strawberries, broccoli</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Vitamin D</td>
+                                                        <td>Bone health, immune function</td>
+                                                        <td>Fatty fish, egg yolks, fortified foods, sunlight</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Calcium</td>
+                                                        <td>Bone health, muscle function</td>
+                                                        <td>Dairy products, leafy greens, fortified foods</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Iron</td>
+                                                        <td>Oxygen transport, energy production</td>
+                                                        <td>Red meat, beans, spinach, fortified cereals</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Magnesium</td>
+                                                        <td>Muscle function, energy production</td>
+                                                        <td>Nuts, seeds, whole grains, leafy greens</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if diet_plan.calorie_suggestion %}
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#calorieAdjustmentInfo" aria-expanded="false">
+                            <i class="bi bi-plus-circle"></i> Calorie Adjustment Suggestion
+                        </button>
+                        <div class="collapse mt-3" id="calorieAdjustmentInfo">
+                            <div class="card card-body text-start">
+                                <p class="mb-0 small">{{ diet_plan.calorie_suggestion }}</p>
+                                {% if diet_plan.adjusted_calories and diet_plan.adjusted_calories != diet_plan.daily_calories %}
+                                    <!-- <p class="mb-0 small fw-bold mt-2">Recommended: {{ diet_plan.adjusted_calories }} calories/day</p> -->
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -348,71 +570,119 @@
                 <div class="diet-section-content">
                     <div class="meal-plan">
                         <div class="meal-card mb-4">
-                            <div class="meal-card-header">
-                                <h4>Breakfast</h4>
+                            <div class="meal-card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-0"><i class="bi bi-sunrise me-2"></i>Breakfast</h4>
+                                    <small class="text-muted">7:00 - 8:00 AM</small>
+                                </div>
+                                <span class="badge bg-light text-primary">
+                                    {{ (diet_plan.adjusted_calories if diet_plan.adjusted_calories is defined else diet_plan.daily_calories|default(1800)) // 4 }} calories
+                                </span>
                             </div>
                             <div class="meal-card-content">
-                                <ul>
-                                    {% if diet_plan.breakfast %}
-                                        {% for item in diet_plan.breakfast %}
-                                        <li>{{ item }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li>Oatmeal with berries (1 cup)</li>
-                                        <li>Greek yogurt (1/2 cup)</li>
-                                        <li>Mixed nuts (1/4 cup)</li>
-                                        <li>Green tea or water</li>
-                                    {% endif %}
-                                </ul>
-                                <div class="mt-3 d-flex justify-content-between">
-                                    <small class="text-muted">{{ diet_plan.daily_calories|default(1800) // 4 }} calories</small>
-                                </div>
+                                {% if diet_plan.breakfast %}
+                                    {% for item in diet_plan.breakfast %}
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>{{ item }}</span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Oatmeal with berries (1 cup)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Greek yogurt (1/2 cup)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Mixed nuts (1/4 cup)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Green tea or water</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <div class="meal-card mb-4">
-                            <div class="meal-card-header">
-                                <h4>Lunch</h4>
+                            <div class="meal-card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-0"><i class="bi bi-sun me-2"></i>Lunch</h4>
+                                    <small class="text-muted">12:30 - 1:30 PM</small>
+                                </div>
+                                <span class="badge bg-light text-primary">
+                                    {{ (diet_plan.adjusted_calories if diet_plan.adjusted_calories is defined else diet_plan.daily_calories|default(1800)) // 3 }} calories
+                                </span>
                             </div>
                             <div class="meal-card-content">
-                                <ul>
-                                    {% if diet_plan.lunch %}
-                                        {% for item in diet_plan.lunch %}
-                                        <li>{{ item }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li>Grilled chicken salad</li>
-                                        <li>Whole grain bread (1 slice)</li>
-                                        <li>Olive oil dressing (1 tbsp)</li>
-                                        <li>Fresh fruit</li>
-                                    {% endif %}
-                                </ul>
-                                <div class="mt-3 d-flex justify-content-between">
-                                    <small class="text-muted">{{ diet_plan.daily_calories|default(1800) // 3 }} calories</small>
-                                </div>
+                                {% if diet_plan.lunch %}
+                                    {% for item in diet_plan.lunch %}
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>{{ item }}</span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Grilled chicken salad</span>
+                                    </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Whole grain bread (1 slice)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Olive oil dressing (1 tbsp)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Fresh fruit</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <div class="meal-card mb-4">
-                            <div class="meal-card-header">
-                                <h4>Dinner</h4>
+                            <div class="meal-card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-0"><i class="bi bi-moon me-2"></i>Dinner</h4>
+                                    <small class="text-muted">7:00 - 8:00 PM</small>
+                                </div>
+                                <span class="badge bg-light text-primary">
+                                    {{ (diet_plan.adjusted_calories if diet_plan.adjusted_calories is defined else diet_plan.daily_calories|default(1800)) // 3 }} calories
+                                </span>
                             </div>
                             <div class="meal-card-content">
-                                <ul>
-                                    {% if diet_plan.dinner %}
-                                        {% for item in diet_plan.dinner %}
-                                        <li>{{ item }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li>Baked salmon (4 oz)</li>
-                                        <li>Steamed vegetables (1 cup)</li>
-                                        <li>Brown rice (1/2 cup)</li>
-                                        <li>Lemon water</li>
-                                    {% endif %}
-                                </ul>
-                                <div class="mt-3 d-flex justify-content-between">
-                                    <small class="text-muted">{{ diet_plan.daily_calories|default(1800) // 3 }} calories</small>
-                                </div>
+                                {% if diet_plan.dinner %}
+                                    {% for item in diet_plan.dinner %}
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>{{ item }}</span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Baked salmon (4 oz)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Steamed vegetables (1 cup)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Brown rice (1/2 cup)</span>
+                                    </div>
+                                    <div class="d-flex align-items-start">
+                                        <i class="bi bi-circle-fill me-2 text-primary" style="font-size: 8px; margin-top: 8px;"></i>
+                                        <span>Lemon water</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -429,23 +699,67 @@
         <div class="diet-section-content">
             <div class="diet-tips">
                 <div class="tip-card">
-                    <h5><i class="bi bi-cup-hot"></i> Hydration</h5>
-                    <p>Aim to drink at least 2 liters of water daily. Limit sugary drinks and alcohol.</p>
+                    <h5 data-bs-toggle="collapse" data-bs-target="#hydration-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-cup-hot me-2"></i> Hydration
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="hydration-tip">Aim to drink at least 2 liters of water daily. Limit sugary drinks and alcohol.</p>
                 </div>
                 
                 <div class="tip-card">
-                    <h5><i class="bi bi-alarm"></i> Meal Timing</h5>
-                    <p>Try to eat at regular intervals and avoid large meals close to bedtime.</p>
+                    <h5 data-bs-toggle="collapse" data-bs-target="#protein-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-egg-fried me-2"></i> Protein Sources
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="protein-tip">Include lean meats, fish, eggs, dairy, legumes, tofu, and plant-based options for complete protein intake.</p>
                 </div>
                 
                 <div class="tip-card">
-                    <h5><i class="bi bi-heart-pulse"></i> Heart Health</h5>
-                    <p>Include omega-3 rich foods like fish, walnuts, and flaxseeds in your diet.</p>
+                    <h5 data-bs-toggle="collapse" data-bs-target="#heart-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-heart-pulse me-2"></i> Heart Health
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="heart-tip">Include omega-3 rich foods like salmon, sardines, walnuts, chia and flaxseeds in your diet.</p>
                 </div>
                 
                 <div class="tip-card">
-                    <h5><i class="bi bi-battery-half"></i> Portion Control</h5>
-                    <p>Be mindful of portion sizes to help maintain your calorie target.</p>
+                    <h5 data-bs-toggle="collapse" data-bs-target="#portion-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-battery-half me-2"></i> Portion Control
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="portion-tip">Be mindful of portion sizes to help maintain your calorie target.</p>
+                </div>
+                
+                <div class="tip-card">
+                    <h5 data-bs-toggle="collapse" data-bs-target="#carbs-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-flower1 me-2"></i> Quality Carbs
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="carbs-tip">Choose complex carbohydrates: whole grains, oats, brown rice, quinoa, sweet potatoes, and legumes.</p>
+                </div>
+                
+                <div class="tip-card">
+                    <h5 data-bs-toggle="collapse" data-bs-target="#fats-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-droplet-fill me-2"></i> Healthy Fats
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="fats-tip">Incorporate avocados, nuts, olive oil, and fatty fish for essential fatty acids that support brain health.</p>
+                </div>
+                
+                <div class="tip-card">
+                    <h5 data-bs-toggle="collapse" data-bs-target="#timing-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-alarm me-2"></i> Meal Timing
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="timing-tip">Try to eat at regular intervals and avoid large meals close to bedtime.</p>
+                </div>
+                
+                <div class="tip-card">
+                    <h5 data-bs-toggle="collapse" data-bs-target="#colorful-tip" aria-expanded="false" style="cursor: pointer;">
+                        <i class="bi bi-rainbow me-2"></i> Colorful Plate
+                        <i class="bi bi-plus-circle ms-2 small"></i>
+                    </h5>
+                    <p class="collapse" id="colorful-tip">Eat a variety of colorful fruits and vegetables daily to get a wide range of vitamins, minerals and antioxidants.</p>
                 </div>
             </div>
         </div>
@@ -456,6 +770,12 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
         // Tab switching functionality
         const tabs = document.querySelectorAll('.diet-profile-tab');
         tabs.forEach(tab => {
@@ -528,6 +848,17 @@
         if (weightInput) {
             weightInput.addEventListener('input', calculateBMI);
         }
+
+        // Toggle plus/minus icons for diet tips
+        document.querySelectorAll('.tip-card h5').forEach(element => {
+            element.addEventListener('click', function() {
+                const plusIcon = this.querySelector('.bi-plus-circle');
+                if (plusIcon) {
+                    plusIcon.classList.toggle('bi-plus-circle');
+                    plusIcon.classList.toggle('bi-dash-circle');
+                }
+            });
+        });
     });
 </script>
 {% endblock %} 

@@ -3,76 +3,253 @@ from models.diet_plan import recommend_meal, calculate_bmi
 
 diet_bp = Blueprint('diet', __name__)
 
+# Helper Functions
+def calculate_daily_calories(weight, height_ft, age):
+    """
+    Calculate daily calorie needs based on weight, height, and age.
+    
+    Args:
+        weight (float): Weight in kilograms
+        height_ft (float): Height in decimal feet
+        age (int): Age in years
+        
+    Returns:
+        int: Estimated daily calorie needs
+    """
+    if height_ft <= 0:
+        return 2000  # Default value
+        
+    # Convert height from feet to meters
+    height_m = height_ft * 0.3048
+    
+    # Basic BMR calculation (Harris-Benedict equation)
+    bmr = 10 * weight + 6.25 * (height_m * 100) - 5 * age + 5
+    daily_calories = int(bmr * 1.2)  # Assuming sedentary activity level
+    
+    return daily_calories
+
+def get_primary_disease(diseases, diabetes, bp, cholesterol):
+    """
+    Determine the primary disease for diet recommendations.
+    
+    Args:
+        diseases (list): List of disease names
+        diabetes (str): Diabetes status
+        bp (str): Blood pressure status
+        cholesterol (str): Cholesterol status
+        
+    Returns:
+        str: Primary disease name for diet recommendations
+    """
+    disease_list = []
+    
+    # Add diseases based on health data
+    if diabetes != 'none':
+        disease_list.append('diabetes')
+    
+    if bp == 'high':
+        disease_list.append('hypertension')
+        
+    if cholesterol == 'high':
+        disease_list.append('heart disease')
+    
+    # Add other diseases
+    for d in diseases:
+        if d and d not in disease_list:
+            disease_list.append(d)
+    
+    # Select primary disease for diet recommendations
+    if not disease_list:
+        return 'none'
+        
+    if 'diabetes' in disease_list:
+        return 'diabetes'
+    elif 'hypertension' in disease_list:
+        return 'hypertension'
+    elif 'heart disease' in disease_list:
+        return 'heart disease'
+    else:
+        return disease_list[0]
+
+def create_user_profile(health_data):
+    """
+    Create a user profile from health data.
+    
+    Args:
+        health_data (tuple): Database result containing health information
+        
+    Returns:
+        dict: User profile dictionary
+    """
+    height = float(health_data[0])     # Height in decimal feet (e.g., 5.5)
+    weight = float(health_data[1])     # Weight in kg
+    bmi = float(health_data[2])        # BMI from database
+    age = int(health_data[3])          # Age
+    diabetes = health_data[4]          # Diabetes type
+    bp = health_data[5]                # Blood pressure
+    cholesterol = health_data[6]       # Cholesterol level
+    
+    # Get additional fields if available
+    activity_level = health_data[7] if len(health_data) > 7 else 'sedentary'
+    diet_type = health_data[8] if len(health_data) > 8 else 'none'
+    allergies = health_data[9].split(',') if len(health_data) > 9 and health_data[9] else []
+    primary_goal = health_data[10] if len(health_data) > 10 else 'maintain_weight'
+    
+    # Create user profile from database data
+    user_profile = {
+        'age': age,
+        'height': height,  # Height in decimal feet
+        'weight': weight,
+        'bmi': bmi,
+        'diseases': [],
+        'activity_level': activity_level,
+        'diet_type': diet_type,
+        'allergies': allergies,
+        'primary_goal': primary_goal
+    }
+    
+    # Add diseases based on health data
+    if diabetes != 'none':
+        user_profile['diseases'].append('diabetes')
+    
+    if bp == 'high':
+        user_profile['diseases'].append('hypertension')
+        
+    if cholesterol == 'high':
+        user_profile['diseases'].append('heart disease')
+        
+    if bmi >= 30:
+        user_profile['diseases'].append('obesity')
+        
+    return user_profile
+
+def create_diet_plan(age, weight, height_ft, disease, stored_bmi):
+    """
+    Create a diet plan based on user information.
+    
+    Args:
+        age (int): Age in years
+        weight (float): Weight in kilograms
+        height_ft (float): Height in decimal feet
+        disease (str): Primary disease
+        stored_bmi (float): BMI from database
+        
+    Returns:
+        dict: Diet plan dictionary with meal recommendations
+    """
+    # Get meal recommendations
+    bmi, bmi_category, breakfast, lunch, dinner = recommend_meal(
+        age=age,
+        weight=weight,
+        height_ft=height_ft,
+        disease=disease,
+        stored_bmi=stored_bmi
+    )
+    
+    # Calculate daily calories
+    daily_calories = calculate_daily_calories(weight, height_ft, age)
+    
+    # Determine calorie adjustment suggestion based on BMI category
+    calorie_suggestion = ""
+    adjusted_calories = daily_calories
+    
+    if bmi_category.lower() == "obese":
+        # Reduce by 20% for obese
+        adjusted_calories = int(daily_calories * 0.8)
+        calorie_suggestion = "Based on your BMI category (Obese), we suggest reducing your daily calorie intake by 20% to support healthy weight loss."
+    elif bmi_category.lower() == "overweight":
+        # Reduce by 10% for overweight
+        adjusted_calories = int(daily_calories * 0.9)
+        calorie_suggestion = "Based on your BMI category (Overweight), we suggest reducing your daily calorie intake by 10% to achieve a healthy weight."
+    elif bmi_category.lower() == "underweight":
+        # Increase by 10% for underweight
+        adjusted_calories = int(daily_calories * 1.1)
+        calorie_suggestion = "Based on your BMI category (Underweight), we suggest increasing your daily calorie intake by 10% to support healthy weight gain."
+    else:  # Normal weight
+        calorie_suggestion = "Your BMI falls within the normal range. The suggested calorie intake aims to maintain your current weight."
+    
+    # Create diet plan
+    return {
+        "daily_calories": daily_calories,
+        "adjusted_calories": adjusted_calories,
+        "calorie_suggestion": calorie_suggestion,
+        "bmi": bmi,
+        "bmi_category": bmi_category,
+        "breakfast": [breakfast] if breakfast else [],
+        "lunch": [lunch] if lunch else [],
+        "dinner": [dinner] if dinner else [],
+        "medical_condition": disease
+    }
+
+def get_profile_by_user_id(user_id):
+    """
+    Get user profile data from the database.
+    
+    Args:
+        user_id (int): The user ID to retrieve profile data for
+        
+    Returns:
+        dict: Dictionary with user profile data
+        tuple: Raw database result
+    """
+    try:
+        mysql = g.mysql
+        cur = mysql.connection.cursor()
+        
+        # Get health data
+        cur.execute("""
+            SELECT height, weight, bmi, age, diabetes, bp, cholesterol, 
+                   activity_level, diet_type, allergies, primary_goal
+            FROM health_data 
+            WHERE user_id = %s
+            ORDER BY id DESC LIMIT 1
+        """, (user_id,))
+        
+        result = cur.fetchone()
+        cur.close()
+        
+        if not result:
+            return {}, None
+            
+        # Create profile dictionary using helper function
+        profile = create_user_profile(result)
+        return profile, result
+        
+    except Exception as e:
+        print(f"Error getting user profile: {str(e)}")
+        return {}, None
+
+# Routes
+
 @diet_bp.route('/diet_plan')
 def diet_plan():
     if 'user_id' not in session:
         flash('Please login first')
         return redirect(url_for('auth.login'))
     
-    # Get user's health data from database
-    mysql = g.mysql
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT height, weight, age, bmi, diabetes, bp, cholesterol
-        FROM health_data 
-        WHERE user_id = %s
-    """, (session['user_id'],))
-    health_data = cur.fetchone()
-    cur.close()
+    # Get user profile using helper function
+    user_profile, health_data = get_profile_by_user_id(session['user_id'])
     
     if not health_data:
         flash('Please complete your health profile first')
         return redirect(url_for('user.health_form'))
     
-    # Height is already in decimal feet format
-    height = float(health_data[0])  # Height in decimal feet (e.g., 5.6)
-    weight = float(health_data[1])  # Weight in kg
-    age = int(health_data[2])       # Age
-    bmi = float(health_data[3])     # BMI directly from database
-    
-    disease = 'none'
-    # Determine disease based on health conditions
-    if health_data[4] != 'none':
-        disease = 'diabetes'
-    elif health_data[5] == 'high':
-        disease = 'hypertension'
-    
-    # Get diet recommendations based on the user's health data
-    bmi, bmi_category, breakfast, lunch, dinner = recommend_meal(
-        age=age, 
-        weight=weight, 
-        height_ft=height,  # Height in decimal feet
-        disease=disease,
-        stored_bmi=bmi  # Pass the BMI from the database
+    # Determine primary disease for diet recommendations
+    disease = get_primary_disease(
+        user_profile.get('diseases', []),
+        health_data[4],  # diabetes
+        health_data[5],  # bp
+        health_data[6]   # cholesterol
     )
     
-    # Calculate daily calories using a simpler method
-    if height > 0:
-        # Convert height to meters
-        height_m = height * 0.3048
-        # Basic BMR calculation (Harris-Benedict equation)
-        bmr = 10 * weight + 6.25 * (height_m * 100) - 5 * age + 5
-        daily_calories = int(bmr * 1.2)  # Assuming sedentary activity level
-    else:
-        daily_calories = 2000  # Default value
-        
-    # Format recommendations for the template
-    recommendations = {
-        'bmi': bmi,
-        'bmi_category': bmi_category,
-        'daily_calories': daily_calories,
-        'breakfast': [breakfast] if breakfast else [],
-        'lunch': [lunch] if lunch else [],
-        'dinner': [dinner] if dinner else []
-    }
-    
-    # Create user profile
-    user_profile = {
-        'age': age,
-        'height': height,  # Height in decimal feet
-        'weight': weight,
-        'bmi': bmi
-    }
+    # Create diet plan using helper function
+    recommendations = create_diet_plan(
+        age=user_profile['age'],
+        weight=user_profile['weight'],
+        height_ft=user_profile['height'],
+        disease=disease,
+        stored_bmi=user_profile['bmi']
+    )
     
     return render_template('diet_plan.html', 
                           user_profile=user_profile,
@@ -435,101 +612,29 @@ def diet_recommendation():
             flash('Please login first')
             return redirect(url_for('auth.login'))
             
-        user_id = session['user_id']
-        
-        # Connect to database and fetch user profile
-        mysql = g.mysql
-        cur = mysql.connection.cursor()
-        
-        # Fetch basic user data
-        cur.execute('''
-            SELECT height, weight, bmi, age, diabetes, bp, cholesterol
-            FROM health_data 
-            WHERE user_id = %s
-            ORDER BY id DESC LIMIT 1
-        ''', (user_id,))
-        
-        health_data = cur.fetchone()
-        cur.close()
+        # Get user profile using helper function
+        user_profile, health_data = get_profile_by_user_id(session['user_id'])
         
         if not health_data:
             flash('Please complete your health profile first')
             return redirect(url_for('user.health_form'))
         
-        # Extract data from the database result
-        height = float(health_data[0])     # Height in decimal feet (e.g., 5.5)
-        weight = float(health_data[1])     # Weight in kg
-        bmi = float(health_data[2])        # BMI from database
-        age = int(health_data[3])          # Age
-        diabetes = health_data[4]          # Diabetes type
-        bp = health_data[5]                # Blood pressure
-        cholesterol = health_data[6]       # Cholesterol level
-        
-        # Create user profile from database data
-        user_profile = {
-            'age': age,
-            'height': height,  # Height in decimal feet
-            'weight': weight,
-            'bmi': bmi,
-            'diseases': [],
-            'activity_level': 'sedentary',  # Default value
-            'primary_goal': 'maintain_weight'  # Default value
-        }
-        
-        # Add diseases based on health data
-        if diabetes != 'none':
-            user_profile['diseases'].append('diabetes')
-        
-        if bp == 'high':
-            user_profile['diseases'].append('hypertension')
-            
-        if cholesterol == 'high':
-            user_profile['diseases'].append('heart disease')
-            
-        if bmi >= 30:
-            user_profile['diseases'].append('obesity')
-        
-        # Generate diet plan based on user profile
-        disease = 'none'
-        if user_profile['diseases']:
-            if 'diabetes' in user_profile['diseases']:
-                disease = 'diabetes'
-            elif 'hypertension' in user_profile['diseases']:
-                disease = 'hypertension'
-            elif 'heart disease' in user_profile['diseases']:
-                disease = 'heart disease'
-            elif len(user_profile['diseases']) > 0:
-                disease = user_profile['diseases'][0]
-        
-        # Get meal recommendations using height in feet and stored BMI
-        bmi, bmi_category, breakfast, lunch, dinner = recommend_meal(
-            age=age,
-            weight=weight,
-            height_ft=height,  # Height in decimal feet
-            disease=disease,
-            stored_bmi=bmi
+        # Determine primary disease for diet recommendations
+        disease = get_primary_disease(
+            user_profile.get('diseases', []),
+            health_data[4],  # diabetes
+            health_data[5],  # bp
+            health_data[6]   # cholesterol
         )
         
-        # Calculate daily calories
-        if height > 0:
-            # Use a simpler calorie calculation
-            height_m = height * 0.3048  # Convert decimal feet to meters
-            # Basic BMR calculation (Harris-Benedict equation)
-            bmr = 10 * weight + 6.25 * (height_m * 100) - 5 * age + 5
-            daily_calories = int(bmr * 1.2)  # Assuming sedentary activity level
-        else:
-            daily_calories = 2000  # Default value
-        
-        # Create diet plan
-        diet_plan = {
-            "daily_calories": daily_calories,
-            "bmi": bmi,
-            "bmi_category": bmi_category,
-            "breakfast": [breakfast] if breakfast else [],
-            "lunch": [lunch] if lunch else [],
-            "dinner": [dinner] if dinner else [],
-            "medical_condition": disease
-        }
+        # Create diet plan using helper function
+        diet_plan = create_diet_plan(
+            age=user_profile['age'],
+            weight=user_profile['weight'],
+            height_ft=user_profile['height'],
+            disease=disease,
+            stored_bmi=user_profile['bmi']
+        )
         
         # Store the diet plan in session for later use
         session['diet_plan'] = diet_plan
@@ -541,65 +646,4 @@ def diet_recommendation():
     except Exception as e:
         print(f"Database error: {str(e)}")
         flash(f'Error fetching user profile: {str(e)}', 'error')
-        return redirect(url_for('user.health_form'))
-
-def get_profile_by_user_id(user_id):
-    """
-    Get user profile data from the database.
-    
-    Args:
-        user_id (int): The user ID to retrieve profile data for
-        
-    Returns:
-        dict: Dictionary with user profile data
-    """
-    try:
-        mysql = g.mysql
-        cur = mysql.connection.cursor()
-        
-        # Get health data
-        cur.execute("""
-            SELECT height, weight, bmi, age, diabetes, bp, cholesterol, 
-                   activity_level, diet_type, allergies, primary_goal
-            FROM health_data 
-            WHERE user_id = %s
-            ORDER BY id DESC LIMIT 1
-        """, (user_id,))
-        
-        result = cur.fetchone()
-        cur.close()
-        
-        if not result:
-            return {}
-            
-        # Create profile dictionary
-        profile = {
-            'height': float(result[0]),
-            'weight': float(result[1]),
-            'bmi': float(result[2]),
-            'age': int(result[3]),
-            'diseases': [],
-            'activity_level': result[7] or 'sedentary',
-            'diet_type': result[8] or 'none',
-            'allergies': result[9].split(',') if result[9] else [],
-            'primary_goal': result[10] or 'maintain_weight'
-        }
-        
-        # Add diseases based on health data
-        if result[4] != 'none':
-            profile['diseases'].append('diabetes')
-        
-        if result[5] == 'high':
-            profile['diseases'].append('hypertension')
-            
-        if result[6] == 'high':
-            profile['diseases'].append('heart disease')
-            
-        if profile['bmi'] >= 30:
-            profile['diseases'].append('obesity')
-            
-        return profile
-        
-    except Exception as e:
-        print(f"Error getting user profile: {str(e)}")
-        return {} 
+        return redirect(url_for('user.health_form')) 
