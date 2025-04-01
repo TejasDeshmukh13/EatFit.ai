@@ -67,6 +67,8 @@ def edit_health_data():
             weight_lbs = weight * 2.20462
             # Calculate BMI using imperial formula: (weight in pounds * 703) / (height in inches)²
             bmi = (weight_lbs * 703) / (height_inches * height_inches)
+            # Round BMI to 1 decimal place
+            bmi = round(bmi, 1)
         else:
             bmi = 0
             
@@ -126,11 +128,13 @@ def submit_health_data():
         # Calculate BMI using the height in feet
         if height > 0:
             # Convert height to inches for BMI calculation
-            height_inches = height
+            height_inches = (int(height) * 12) + ((height % 1) * 12)
             # Convert weight from kg to lbs for imperial BMI calculation
             weight_lbs = weight * 2.20462
             # Calculate BMI using imperial formula: (weight in pounds * 703) / (height in inches)²
             bmi = (weight_lbs * 703) / (height_inches * height_inches)
+            # Round BMI to 1 decimal place
+            bmi = round(bmi, 1)
         else:
             bmi = 0
             
