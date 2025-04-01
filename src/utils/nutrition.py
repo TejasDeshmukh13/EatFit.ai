@@ -321,16 +321,18 @@ def process_with_config(image_path, config_idx, barcode=None):
         # Extract data from image using OCR
         ocr_data = extract_text(image_path)
         
-        # If we have both OCR and API data, merge them
-        if ocr_data and 'error' not in api_data and barcode:
-            nutrition_data = merge_nutrition_data(ocr_data, api_data)
-        # If we only have OCR data (no barcode or API failed)
-        elif ocr_data and (not barcode or 'error' in api_data):
-            nutrition_data = ocr_data
+        # # If we have both OCR and API data, merge them
+        # if ocr_data and 'error' not in api_data and barcode:
+        #     nutrition_data = merge_nutrition_data(ocr_data, api_data)
+        # # If we only have OCR data (no barcode or API failed)
+        # elif ocr_data and (not barcode or 'error' in api_data):
+        #     nutrition_data = ocr_data
+
+
         # If OCR failed but we have API data
-        elif not ocr_data and 'error' not in api_data and barcode:
+        if 'error' not in api_data and barcode:
             nutrition_data = api_data
-        # If both failed, provide default values
+        # If failed, provide default values
         elif not nutrition_data:
             nutrition_data = {
                 "energy_kcal": 0,

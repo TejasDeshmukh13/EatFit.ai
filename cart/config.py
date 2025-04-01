@@ -2,9 +2,9 @@ import os
 
 class Config:
     # MySQL Configuration
-    MYSQL_HOST = 'localhost'
+    MYSQL_HOST = '127.0.0.1'
     MYSQL_USER = 'root'
-    MYSQL_PASSWORD = 'Kisanjena@123'
+    MYSQL_PASSWORD = 'root'
     MYSQL_DB = 'user_database'
 
     # File upload configuration

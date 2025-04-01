@@ -5,7 +5,7 @@ Database configuration settings.
 DB_CONFIG = {
     'MYSQL_HOST': '127.0.0.1',
     'MYSQL_USER': 'root',
-    'MYSQL_PASSWORD': 'Kisanjena@123',
+    'MYSQL_PASSWORD': 'root',
     'MYSQL_DB': 'user_database',
     'MYSQL_AUTH_PLUGIN': 'mysql_native_password',
     'MYSQL_POOL_NAME': 'eatfit_pool',

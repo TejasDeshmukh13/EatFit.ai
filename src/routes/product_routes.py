@@ -191,8 +191,7 @@ def upload_file():
                     session.pop('barcode', None)
                 
                 # Process the image with OCR
-                nutrition_data = process_with_config(upload_path, 0)
-                
+                nutrition_data = extract_text(upload_path)
                 if isinstance(nutrition_data, dict) and not nutrition_data.get('error'):
                     # If we have a barcode, try to get additional data
                     if barcode:
