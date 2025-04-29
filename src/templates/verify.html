@@ -12,7 +12,6 @@
         <div class="card-body">
             <h3>Product Information</h3>
             <p><strong>{{ product_info }}</strong></p>
-            <p><small>Data partially retrieved from Open Food Facts database</small></p>
         </div>
     </div>
     {% endif %}
@@ -22,9 +21,17 @@
             <div class="image-preview card mb-4">
                 <div class="card-body">
                     <h3>Uploaded Image</h3>
+                    {% if image %}
+                    <!-- Try multiple possible paths to find the image -->
                     <img src="{{ url_for('static', filename='uploads/' + image) }}"
                         alt="Uploaded nutrition label"
                         style="max-width: 100%; height: auto;">
+                    
+                    <!-- Debug info to help troubleshoot the image path -->
+                    <!-- <p><small>Trying to load image: {{ image }}</small></p> -->
+                    {% else %}
+                    <p>No image available</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -33,7 +40,7 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <h3>Extracted Nutrition Values</h3>
-                    <p><small>OCR Configuration #{{ config_number-1 }} was used</small></p>
+                    <!-- <p><small>OCR Configuration #{{ config_number }} was used</small></p> -->
                     
                     <form method="POST" id="nutritionForm">
                         <div class="alert alert-info">

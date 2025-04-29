@@ -175,8 +175,26 @@ def upload_file():
                 # Save the uploaded file
                 filename = secure_filename(file.filename)
                 app_config = g.app.config
-                upload_path = os.path.join(app_config['UPLOAD_FOLDER'], filename)
+                
+                # Make sure the upload folder exists
+                upload_folder = app_config['UPLOAD_FOLDER']
+                # Create the directory if it doesn't exist
+                os.makedirs(upload_folder, exist_ok=True)
+                
+                # Ensure the uploads folder is in the static directory
+                if 'static/uploads' not in upload_folder and 'static\\uploads' not in upload_folder:
+                    # Fix the path to ensure it's in static/uploads
+                    if os.path.exists('src/static'):
+                        upload_folder = os.path.join('src', 'static', 'uploads')
+                    else:
+                        upload_folder = os.path.join('static', 'uploads')
+                    os.makedirs(upload_folder, exist_ok=True)
+                
+                upload_path = os.path.join(upload_folder, filename)
                 file.save(upload_path)
+                
+                # Log the saved path for debugging
+                print(f"Saved file to: {upload_path}")
                 
                 # Store file information in session
                 session['file_path'] = upload_path
@@ -321,12 +339,39 @@ def verify_extraction():
     if 'product_name' in session and 'brand' in session:
         product_info = f"{session['product_name']} by {session['brand']}"
     
-    # Ensure filename exists and is valid
+    # Get the filename and ensure it's just the filename part (no path)
+    file_path = session.get('file_path', '')
     filename = session.get('filename', '')
+    
+    if not filename and file_path:
+        # Extract just the filename from the path if needed
+        if '\\' in file_path:
+            filename = file_path.split('\\')[-1]
+        elif '/' in file_path:
+            filename = file_path.split('/')[-1]
     
     if not filename:
         flash("Image not found", "error")
         return redirect(url_for('product.upload_file'))
+    
+    # Log the filename for debugging
+    print(f"Image filename for template: {filename}")
+    print(f"Full image path in session: {file_path}")
+    
+    # Create a copy of the file in static/uploads if it's not already there
+    if file_path and os.path.exists(file_path):
+        static_uploads = os.path.join('src', 'static', 'uploads')
+        os.makedirs(static_uploads, exist_ok=True)
+        target_path = os.path.join(static_uploads, filename)
+        
+        # Only copy if the file doesn't already exist in uploads
+        if not os.path.exists(target_path) and file_path != target_path:
+            try:
+                import shutil
+                shutil.copy2(file_path, target_path)
+                print(f"Copied image to static folder: {target_path}")
+            except Exception as e:
+                print(f"Error copying file to static folder: {str(e)}")
     
     return render_template(
         "verify.html",
@@ -585,29 +630,83 @@ def alternative_products():
         # If no alternatives found or error occurred, provide healthy generic alternatives
         if not alternatives:
             logger.info("No alternatives found from API, using generic alternatives")
-            alternatives = [
-                {
-                    'product_name': 'Fresh Fruit Bowl',
-                    'image_url': url_for('static', filename='images/diet.jpg'),
-                    'nutriscore_grade': 'A',
-                    'nova_group': 1,
-                    'reason': 'Natural • Unprocessed • Rich in vitamins'
-                },
-                {
-                    'product_name': 'Greek Yogurt with Honey',
-                    'image_url': url_for('static', filename='images/F1.png'),
-                    'nutriscore_grade': 'A',
-                    'nova_group': 1,
-                    'reason': 'High protein • Probiotic • Natural sweetness'
-                },
-                {
-                    'product_name': 'Whole Grain Toast with Avocado',
-                    'image_url': url_for('static', filename='images/pack_fd_re.jpg'),
-                    'nutriscore_grade': 'B',
-                    'nova_group': 2,
-                    'reason': 'Healthy fats • High fiber • Complex carbs'
-                }
-            ]
+            
+            # Specific alternatives based on barcode
+            if barcode == "8901719125478":  # Biscuit product
+                logger.info("Using biscuit alternatives")
+                alternatives = [
+                    {
+                        'product_name': 'Sugar Free Coconut Cookies',
+                        'image_url': url_for('static', filename='images/biscuit1.jpg'),
+                        'nutriscore_grade': 'A',
+                        'nova_group': 1,
+                        'reason': 'Healthier alternative to regular biscuits'
+                    },
+                    {
+                        'product_name': 'Diabetes friendlly - Jeera Cookies',
+                        'image_url': url_for('static', filename='images/biscuit2.jpg'),
+                        'nutriscore_grade': 'A',
+                        'nova_group': 1,
+                        'reason': 'Healthier alternative to regular biscuits'
+                    },
+                    {
+                        'product_name': 'Chocolate Chips cookies',
+                        'image_url': url_for('static', filename='images/biscuit3.jpg'),
+                        'nutriscore_grade': 'B',
+                        'nova_group': 2,
+                        'reason': 'Healthier alternative to regular biscuits'
+                    }
+                ]
+            elif barcode == "8901262173490":  # Ice cream product
+                logger.info("Using ice cream alternatives")
+                alternatives = [
+                    {
+                        'product_name': 'Go Zero Dark Chocolate',
+                        'image_url': url_for('static', filename='images/icecream1.jpg'),
+                        'nutriscore_grade': 'A',
+                        'nova_group': 1,
+                        'reason': 'Healthier alternative to regular ice cream'
+                    },
+                    {
+                        'product_name': 'Minus Thirty - Hazelnut Mini',
+                        'image_url': url_for('static', filename='images/icecream2.jpg'),
+                        'nutriscore_grade': 'A',
+                        'nova_group': 1,
+                        'reason': 'Healthier alternative to regular ice cream'
+                    },
+                    {
+                        'product_name': 'NIC Roasted Almonds',
+                        'image_url': url_for('static', filename='images/icecream3.jpg'),
+                        'nutriscore_grade': 'B',
+                        'nova_group': 2,
+                        'reason': 'Healthier alternative to regular ice cream'
+                    }
+                ]
+            else:
+                # Default generic alternatives for all other products
+                alternatives = [
+                    {
+                        'product_name': 'Fresh Fruit Bowl',
+                        'image_url': url_for('static', filename='images/diet.jpg'),
+                        'nutriscore_grade': 'A',
+                        'nova_group': 1,
+                        'reason': 'Natural • Unprocessed • Rich in vitamins'
+                    },
+                    {
+                        'product_name': 'Greek Yogurt with Honey',
+                        'image_url': url_for('static', filename='images/F1.png'),
+                        'nutriscore_grade': 'A',
+                        'nova_group': 1,
+                        'reason': 'High protein • Probiotic • Natural sweetness'
+                    },
+                    {
+                        'product_name': 'Whole Grain Toast with Avocado',
+                        'image_url': url_for('static', filename='images/pack_fd_re.jpg'),
+                        'nutriscore_grade': 'B',
+                        'nova_group': 2,
+                        'reason': 'Healthy fats • High fiber • Complex carbs'
+                    }
+                ]
         
         logger.info(f"Rendering template with {len(alternatives)} alternatives")
         
